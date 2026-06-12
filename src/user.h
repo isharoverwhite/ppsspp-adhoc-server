@@ -77,6 +77,11 @@ typedef struct SceNetAdhocctlUserNode {
 	// RX Buffer
 	uint8_t rx[1024];
 	uint32_t rxpos;
+	
+	// TX Buffer (for queued sends)
+	uint8_t tx[4096];
+	uint32_t tx_head;
+	uint32_t tx_len;
 } SceNetAdhocctlUserNode;
 
 // Double-Linked Game List
@@ -129,6 +134,10 @@ extern SceNetAdhocctlUserNode * _db_user;
 
 // Game Database
 extern SceNetAdhocctlGameNode * _db_game;
+
+// Server configuration
+extern uint32_t _server_max_users;
+extern uint32_t _server_timeout;
 
 /**
  * Login User into Database (Stream)
@@ -186,6 +195,29 @@ void spread_message(SceNetAdhocctlUserNode * user, char * message);
  * @param user User Node
  */
 int get_user_state(SceNetAdhocctlUserNode * user);
+
+/**
+ * Send All Data to Socket (handles partial sends)
+ * @param fd Socket Descriptor
+ * @param data Data to send
+ * @param len Length of data
+ * @return Number of bytes sent, or -1 on error
+ */
+ssize_t send_all(int fd, const void * data, size_t len);
+
+/**
+ * Queue Data for Sending (uses TX buffer)
+ * @param user User Node
+ * @param data Data to queue
+ * @param len Length of data
+ */
+void queue_send(SceNetAdhocctlUserNode * user, const void * data, size_t len);
+
+/**
+ * Flush TX Buffer (send queued data)
+ * @param user User Node
+ */
+void flush_user_txbuf(SceNetAdhocctlUserNode * user);
 
 /**
  * Clear RX Buffer

@@ -18,6 +18,9 @@
 #include <stdio.h>
 #include <string.h>
 #include <signal.h>
+#include <unistd.h>
+#include <poll.h>
+#include <time.h>
 
 #if !defined(__APPLE__)
 #include <malloc.h>
@@ -31,12 +34,21 @@
 #include <config.h>
 #include <user.h>
 #include <status.h>
+#include <stdlib.h>
 
 // Server Status
 int _status = 0;
 
+// Server Configuration (with env override support)
+uint16_t _server_port = SERVER_PORT;
+uint32_t _server_max_users = SERVER_USER_MAXIMUM;
+uint32_t _server_timeout = SERVER_USER_TIMEOUT;
+const char * _server_database = SERVER_DATABASE;
+const char * _server_status_path = SERVER_STATUS_XMLOUT;
+
 // Function Prototypes
 void interrupt(int sig);
+void load_env_config(void);
 void enable_address_reuse(int fd);
 void change_blocking_mode(int fd, int nonblocking);
 int create_listen_socket(uint16_t port);
@@ -62,14 +74,20 @@ int main(int argc, char * argv[])
 	// Create Signal Receiver for kill / killall
 	signal(SIGTERM, interrupt);
 	
+	// Ignore SIGPIPE when client disconnects
+	signal(SIGPIPE, SIG_IGN);
+	
+	// Load Configuration from Environment Variables
+	load_env_config();
+	
 	// Create Listening Socket
-	int server = create_listen_socket(SERVER_PORT);
+	int server = create_listen_socket(_server_port);
 	
 	// Created Listening Socket
 	if(server != -1)
 	{
 		// Notify User
-		printf("Listening for Connections on TCP Port %u.\n", SERVER_PORT);
+		printf("Listening for Connections on TCP Port %u.\n", _server_port);
 		
 		// Enter Server Loop
 		result = server_loop(server);
@@ -93,6 +111,42 @@ void interrupt(int sig)
 	
 	// Trigger Shutdown
 	_status = 0;
+}
+
+/**
+ * Load Configuration from Environment Variables
+ */
+void load_env_config(void)
+{
+	// Load port from env
+	const char * env_port = getenv("ADHOC_PORT");
+	if(env_port != NULL)
+	{
+		uint16_t port = (uint16_t)atoi(env_port);
+		if(port > 0) _server_port = port;
+	}
+	
+	// Load max users from env
+	const char * env_max_users = getenv("ADHOC_MAX_USERS");
+	if(env_max_users != NULL)
+	{
+		uint32_t max_users = (uint32_t)atoi(env_max_users);
+		if(max_users > 0 && max_users <= 4096) _server_max_users = max_users;
+	}
+	
+	// Load timeout from env
+	const char * env_timeout = getenv("ADHOC_TIMEOUT");
+	if(env_timeout != NULL)
+	{
+		uint32_t timeout = (uint32_t)atoi(env_timeout);
+		if(timeout > 0) _server_timeout = timeout;
+	}
+	
+	// Log loaded config
+	printf("Configuration:\n");
+	printf("  Port: %u\n", _server_port);
+	printf("  Max Users: %u\n", _server_max_users);
+	printf("  Timeout: %u seconds\n", _server_timeout);
 }
 
 /**
@@ -198,188 +252,184 @@ int server_loop(int server)
 	// Handling Loop
 	while(_status == 1)
 	{
-		// Login Block
+		// Prepare pollfd array
+		struct pollfd fds[SERVER_USER_MAXIMUM + 1];
+		SceNetAdhocctlUserNode * fd_to_user[SERVER_USER_MAXIMUM + 1];
+		int nfds = 1;  // Start with server socket
+		
+		// Add server socket
+		fds[0].fd = server;
+		fds[0].events = POLLIN;
+		fds[0].revents = 0;
+		fd_to_user[0] = NULL;
+		
+		// Add user sockets
+		SceNetAdhocctlUserNode * user = _db_user;
+		while(user != NULL && nfds < (int)_server_max_users + 1 && nfds < SERVER_USER_MAXIMUM + 1)
 		{
-			// Login Result
-			int loginresult = 0;
-			
-			// Login Processing Loop
-			do
-			{
-				// Prepare Address Structure
-				struct sockaddr_in addr;
-				socklen_t addrlen = sizeof(addr);
-				memset(&addr, 0, sizeof(addr));
-				
-				// Accept Login Requests
-				// loginresult = accept4(server, (struct sockaddr *)&addr, &addrlen, SOCK_NONBLOCK);
-				
-				// Alternative Accept Approach (some Linux Kernel don't support the accept4 Syscall... wtf?)
-				loginresult = accept(server, (struct sockaddr *)&addr, &addrlen);
-				if(loginresult != -1)
-				{
-					// Switch Socket into Non-Blocking Mode
-					change_blocking_mode(loginresult, 1);
-				}
-				
-				// Login User (Stream)
-				if(loginresult != -1) login_user_stream(loginresult, addr.sin_addr.s_addr);
-			} while(loginresult != -1);
+			fds[nfds].fd = user->stream;
+			fds[nfds].events = POLLIN;
+			if(user->tx_len > 0) fds[nfds].events |= POLLOUT;
+			fds[nfds].revents = 0;
+			fd_to_user[nfds] = user;
+			nfds++;
+			user = user->next;
 		}
 		
-		// Receive Data from Users
-		SceNetAdhocctlUserNode * user = _db_user;
-		while(user != NULL)
+		// Poll with 1000ms timeout (for user timeout checks)
+		int poll_result = poll(fds, nfds, 1000);
+		
+		// Handle poll errors
+		if(poll_result == -1)
 		{
-			// Next User (for safe delete)
-			SceNetAdhocctlUserNode * next = user->next;
+			if(errno != EINTR) perror("poll");
+			continue;
+		}
+		
+		// Accept new connections
+		if(fds[0].revents & POLLIN)
+		{
+			struct sockaddr_in addr;
+			socklen_t addrlen = sizeof(addr);
+			memset(&addr, 0, sizeof(addr));
 			
-			// Receive Data from User
-			int recvresult = recv(user->stream, user->rx + user->rxpos, sizeof(user->rx) - user->rxpos, 0);
-			
-			// Connection Closed or Timed Out
-			if(recvresult == 0 || (recvresult == -1 && errno != EAGAIN && errno != EWOULDBLOCK) || get_user_state(user) == USER_STATE_TIMED_OUT)
+			int loginresult = accept(server, (struct sockaddr *)&addr, &addrlen);
+			if(loginresult != -1)
 			{
-				// Logout User
-				logout_user(user);
+				change_blocking_mode(loginresult, 1);
+				login_user_stream(loginresult, addr.sin_addr.s_addr);
 			}
+		}
+		
+		// Process user sockets
+		for(int i = 1; i < nfds; i++)
+		{
+			user = fd_to_user[i];
+			if(user == NULL) continue;
 			
-			// Received Data (or leftovers in RX-Buffer)
-			else if(recvresult > 0 || user->rxpos > 0)
+			// Handle read
+			if(fds[i].revents & POLLIN)
 			{
-				// New Incoming Data
+				int recvresult = recv(user->stream, user->rx + user->rxpos, sizeof(user->rx) - user->rxpos, 0);
+				
+				// Connection Closed
+				if(recvresult == 0 || (recvresult == -1 && errno != EAGAIN && errno != EWOULDBLOCK))
+				{
+					logout_user(user);
+					continue;
+				}
+				
+				// Received Data
 				if(recvresult > 0)
 				{
-					// Move RX Pointer
 					user->rxpos += recvresult;
-					
-					// Update Death Clock
 					user->last_recv = time(NULL);
 				}
 				
-				// Waiting for Login Packet
-				if(get_user_state(user) == USER_STATE_WAITING)
+				// Process complete packets
+				if(user->rxpos > 0)
 				{
-					// Valid Opcode
-					if(user->rx[0] == OPCODE_LOGIN)
+					// Waiting for Login Packet
+					if(get_user_state(user) == USER_STATE_WAITING)
 					{
-						// Enough Data available
-						if(user->rxpos >= sizeof(SceNetAdhocctlLoginPacketC2S))
+						if(user->rx[0] == OPCODE_LOGIN)
 						{
-							// Clone Packet
-							SceNetAdhocctlLoginPacketC2S packet = *(SceNetAdhocctlLoginPacketC2S *)user->rx;
-							
-							// Remove Packet from RX Buffer
-							clear_user_rxbuf(user, sizeof(SceNetAdhocctlLoginPacketC2S));
-							
-							// Login User (Data)
-							login_user_data(user, &packet);
+							if(user->rxpos >= sizeof(SceNetAdhocctlLoginPacketC2S))
+							{
+								SceNetAdhocctlLoginPacketC2S packet = *(SceNetAdhocctlLoginPacketC2S *)user->rx;
+								clear_user_rxbuf(user, sizeof(SceNetAdhocctlLoginPacketC2S));
+								login_user_data(user, &packet);
+							}
+						}
+						else
+						{
+							uint8_t * ip = (uint8_t *)&user->resolver.ip;
+							printf("Invalid Opcode 0x%02X in Waiting State from %u.%u.%u.%u.\n", user->rx[0], ip[0], ip[1], ip[2], ip[3]);
+							logout_user(user);
 						}
 					}
-					
-					// Invalid Opcode
-					else
+					// Logged-In User
+					else if(get_user_state(user) == USER_STATE_LOGGED_IN)
 					{
-						// Notify User
-						uint8_t * ip = (uint8_t *)&user->resolver.ip;
-						printf("Invalid Opcode 0x%02X in Waiting State from %u.%u.%u.%u.\n", user->rx[0], ip[0], ip[1], ip[2], ip[3]);
-						
-						// Logout User
-						logout_user(user);
-					}
-				}
-				
-				// Logged-In User
-				else if(get_user_state(user) == USER_STATE_LOGGED_IN)
-				{
-					// Ping Packet
-					if(user->rx[0] == OPCODE_PING)
-					{
-						// Delete Packet from RX Buffer
-						clear_user_rxbuf(user, 1);
-					}
-					
-					// Group Connect Packet
-					else if(user->rx[0] == OPCODE_CONNECT)
-					{
-						// Enough Data available
-						if(user->rxpos >= sizeof(SceNetAdhocctlConnectPacketC2S))
+						if(user->rx[0] == OPCODE_PING)
 						{
-							// Cast Packet
-							SceNetAdhocctlConnectPacketC2S * packet = (SceNetAdhocctlConnectPacketC2S *)user->rx;
-							
-							// Clone Group Name
-							SceNetAdhocctlGroupName group = packet->group;
-							
-							// Remove Packet from RX Buffer
-							clear_user_rxbuf(user, sizeof(SceNetAdhocctlConnectPacketC2S));
-							
-							// Change Game Group
-							connect_user(user, &group);
+							clear_user_rxbuf(user, 1);
 						}
-					}
-					
-					// Group Disconnect Packet
-					else if(user->rx[0] == OPCODE_DISCONNECT)
-					{
-						// Remove Packet from RX Buffer
-						clear_user_rxbuf(user, 1);
-						
-						// Leave Game Group
-						disconnect_user(user);
-					}
-					
-					// Network Scan Packet
-					else if(user->rx[0] == OPCODE_SCAN)
-					{
-						// Remove Packet from RX Buffer
-						clear_user_rxbuf(user, 1);
-						
-						// Send Network List
-						send_scan_results(user);
-					}
-					
-					// Chat Text Packet
-					else if(user->rx[0] == OPCODE_CHAT)
-					{
-						// Enough Data available
-						if(user->rxpos >= sizeof(SceNetAdhocctlChatPacketC2S))
+						else if(user->rx[0] == OPCODE_CONNECT)
 						{
-							// Cast Packet
-							SceNetAdhocctlChatPacketC2S * packet = (SceNetAdhocctlChatPacketC2S *)user->rx;
-							
-							// Clone Buffer for Message
-							char message[64];
-							memset(message, 0, sizeof(message));
-							strncpy(message, packet->message, sizeof(message) - 1);
-							
-							// Remove Packet from RX Buffer
-							clear_user_rxbuf(user, sizeof(SceNetAdhocctlChatPacketC2S));
-							
-							// Spread Chat Message
-							spread_message(user, message);
+							if(user->rxpos >= sizeof(SceNetAdhocctlConnectPacketC2S))
+							{
+								SceNetAdhocctlConnectPacketC2S * packet = (SceNetAdhocctlConnectPacketC2S *)user->rx;
+								SceNetAdhocctlGroupName group = packet->group;
+								clear_user_rxbuf(user, sizeof(SceNetAdhocctlConnectPacketC2S));
+								connect_user(user, &group);
+							}
 						}
-					}
-					
-					// Invalid Opcode
-					else
-					{
-						// Notify User
-						uint8_t * ip = (uint8_t *)&user->resolver.ip;
-						printf("Invalid Opcode 0x%02X in Logged-In State from %s (MAC: %02X:%02X:%02X:%02X:%02X:%02X - IP: %u.%u.%u.%u).\n", user->rx[0], (char *)user->resolver.name.data, user->resolver.mac.data[0], user->resolver.mac.data[1], user->resolver.mac.data[2], user->resolver.mac.data[3], user->resolver.mac.data[4], user->resolver.mac.data[5], ip[0], ip[1], ip[2], ip[3]);
-
-						// Logout User
-						logout_user(user);
+						else if(user->rx[0] == OPCODE_DISCONNECT)
+						{
+							clear_user_rxbuf(user, 1);
+							disconnect_user(user);
+						}
+						else if(user->rx[0] == OPCODE_SCAN)
+						{
+							clear_user_rxbuf(user, 1);
+							send_scan_results(user);
+						}
+						else if(user->rx[0] == OPCODE_CHAT)
+						{
+							if(user->rxpos >= sizeof(SceNetAdhocctlChatPacketC2S))
+							{
+								SceNetAdhocctlChatPacketC2S * packet = (SceNetAdhocctlChatPacketC2S *)user->rx;
+								char message[64];
+								memset(message, 0, sizeof(message));
+								strncpy(message, packet->message, sizeof(message) - 1);
+								clear_user_rxbuf(user, sizeof(SceNetAdhocctlChatPacketC2S));
+								spread_message(user, message);
+							}
+						}
+						else
+						{
+							uint8_t * ip = (uint8_t *)&user->resolver.ip;
+							printf("Invalid Opcode 0x%02X in Logged-In State from %s (MAC: %02X:%02X:%02X:%02X:%02X:%02X - IP: %u.%u.%u.%u).\n", user->rx[0], (char *)user->resolver.name.data, user->resolver.mac.data[0], user->resolver.mac.data[1], user->resolver.mac.data[2], user->resolver.mac.data[3], user->resolver.mac.data[4], user->resolver.mac.data[5], ip[0], ip[1], ip[2], ip[3]);
+							logout_user(user);
+						}
 					}
 				}
 			}
 			
-			// Move Pointer
+			// Handle write (flush TX buffer)
+			if(fds[i].revents & POLLOUT)
+			{
+				flush_user_txbuf(user);
+			}
+			
+			// Handle errors
+			if(fds[i].revents & (POLLERR | POLLHUP))
+			{
+				logout_user(user);
+			}
+		}
+		
+		// Check for user timeouts
+		user = _db_user;
+		while(user != NULL)
+		{
+			SceNetAdhocctlUserNode * next = user->next;
+			if(get_user_state(user) == USER_STATE_TIMED_OUT)
+			{
+				logout_user(user);
+			}
 			user = next;
 		}
 		
-		// Prevent needless CPU Overload (1ms Sleep)
-		usleep(1000);
+		// Update status periodically
+		static time_t last_status_update = 0;
+		time_t now = time(NULL);
+		if(now - last_status_update >= 1)
+		{
+			update_status();
+			last_status_update = now;
+		}
 	}
 	
 	// Free User Database Memory

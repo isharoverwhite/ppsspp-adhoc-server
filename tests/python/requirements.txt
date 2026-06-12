@@ -1,0 +1,3 @@
+# No external dependencies — uses only Python stdlib
+#   socket, struct, unittest, argparse, time
+# For development: pip install pytest (optional, runs with stdlib unittest too)

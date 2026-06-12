@@ -21,6 +21,9 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include <unistd.h>
+#include <sys/socket.h>
+#include <errno.h>
 #include <user.h>
 #include <status.h>
 #include <config.h>
@@ -36,6 +39,98 @@ SceNetAdhocctlUserNode * _db_user = NULL;
 SceNetAdhocctlGameNode * _db_game = NULL;
 
 /**
+ * Send All Data to Socket (handles partial sends)
+ * @param fd Socket Descriptor
+ * @param data Data to send
+ * @param len Length of data
+ * @return Number of bytes sent, or -1 on error
+ */
+ssize_t send_all(int fd, const void * data, size_t len)
+{
+	const uint8_t * buf = (const uint8_t *)data;
+	size_t total = 0;
+	
+	while(total < len)
+	{
+		ssize_t n = send(fd, buf + total, len - total, MSG_NOSIGNAL);
+		
+		if(n == -1)
+		{
+			if(errno == EAGAIN || errno == EWOULDBLOCK)
+				break;
+			return -1;
+		}
+		
+		if(n == 0)
+			break;
+		
+		total += n;
+	}
+	
+	return total;
+}
+
+/**
+ * Queue Data for Sending (uses TX buffer)
+ * @param user User Node
+ * @param data Data to queue
+ * @param len Length of data
+ */
+void queue_send(SceNetAdhocctlUserNode * user, const void * data, size_t len)
+{
+	if(user == NULL || data == NULL || len == 0) return;
+	
+	// Calculate space available in TX buffer
+	uint32_t space = sizeof(user->tx) - user->tx_len;
+	
+	// If data fits, append to buffer
+	if(len <= space)
+	{
+		memcpy(user->tx + user->tx_len, data, len);
+		user->tx_len += len;
+	}
+	else
+	{
+		// Buffer overflow - send what we can directly and ignore rest
+		// In P0.2 context, this shouldn't happen with current protocols
+		// In P1.X, we'd implement buffer flushing on POLLOUT
+		send_all(user->stream, data, len);
+	}
+}
+
+/**
+ * Flush TX Buffer (send queued data)
+ * @param user User Node
+ */
+void flush_user_txbuf(SceNetAdhocctlUserNode * user)
+{
+	if(user == NULL || user->tx_len == 0) return;
+	
+	// Try to send all buffered data
+	ssize_t sent = send_all(user->stream, user->tx, user->tx_len);
+	
+	if(sent == -1)
+	{
+		// Error - clear buffer
+		user->tx_len = 0;
+		user->tx_head = 0;
+	}
+	else if(sent == (ssize_t)user->tx_len)
+	{
+		// All sent - clear buffer
+		user->tx_len = 0;
+		user->tx_head = 0;
+	}
+	else if(sent > 0)
+	{
+		// Partial send - remove sent portion from buffer
+		user->tx_len -= sent;
+		memmove(user->tx, user->tx + sent, user->tx_len);
+		user->tx_head = 0;
+	}
+}
+
+/**
  * Login User into Database (Stream)
  * @param fd Socket
  * @param ip IP Address (Network Order)
@@ -43,7 +138,7 @@ SceNetAdhocctlGameNode * _db_game = NULL;
 void login_user_stream(int fd, uint32_t ip)
 {
 	// Enough Space available
-	if(_db_user_count < SERVER_USER_MAXIMUM)
+	if(_db_user_count < _server_max_users)
 	{
 		// Check IP Duplication
 		SceNetAdhocctlUserNode * u = _db_user;
@@ -385,7 +480,7 @@ void connect_user(SceNetAdhocctlUserNode * user, SceNetAdhocctlGroupName * group
 					packet.ip = user->resolver.ip;
 					
 					// Send Data
-					send(peer->stream, &packet, sizeof(packet), 0);
+					send_all(peer->stream, &packet, sizeof(packet));
 					
 					// Set Player Name
 					packet.name = peer->resolver.name;
@@ -397,7 +492,7 @@ void connect_user(SceNetAdhocctlUserNode * user, SceNetAdhocctlGroupName * group
 					packet.ip = peer->resolver.ip;
 					
 					// Send Data
-					send(user->stream, &packet, sizeof(packet), 0);
+					send_all(user->stream, &packet, sizeof(packet));
 					
 					// Set BSSID
 					if(peer->group_next == NULL) bssid.mac = peer->resolver.mac;
@@ -418,7 +513,7 @@ void connect_user(SceNetAdhocctlUserNode * user, SceNetAdhocctlGroupName * group
 				g->playercount++;
 				
 				// Send Network BSSID to User
-				send(user->stream, &bssid, sizeof(bssid), 0);
+				send_all(user->stream, &bssid, sizeof(bssid));
 				
 				// Notify User
 				uint8_t * ip = (uint8_t *)&user->resolver.ip;
@@ -512,7 +607,7 @@ void disconnect_user(SceNetAdhocctlUserNode * user)
 			packet.ip = user->resolver.ip;
 			
 			// Send Data
-			send(peer->stream, &packet, sizeof(packet), 0);
+			send_all(peer->stream, &packet, sizeof(packet));
 			
 			// Move Pointer
 			peer = peer->group_next;
@@ -612,12 +707,12 @@ void send_scan_results(SceNetAdhocctlUserNode * user)
 			}
 			
 			// Send Group Packet
-			send(user->stream, &packet, sizeof(packet), 0);
+			send_all(user->stream, &packet, sizeof(packet));
 		}
 		
 		// Notify Player of End of Scan
 		uint8_t opcode = OPCODE_SCAN_COMPLETE;
-		send(user->stream, &opcode, 1, 0);
+		send_all(user->stream, &opcode, 1);
 		
 		// Notify User
 		uint8_t * ip = (uint8_t *)&user->resolver.ip;
@@ -677,7 +772,7 @@ void spread_message(SceNetAdhocctlUserNode * user, char * message)
 				strcpy(packet.base.message, message);
 				
 				// Send Data
-				send(user->stream, &packet, sizeof(packet), 0);
+				send_all(user->stream, &packet, sizeof(packet));
 			}
 		}
 		
@@ -718,7 +813,7 @@ void spread_message(SceNetAdhocctlUserNode * user, char * message)
 			packet.name = user->resolver.name;
 			
 			// Send Data
-			send(peer->stream, &packet, sizeof(packet), 0);
+			send_all(peer->stream, &packet, sizeof(packet));
 			
 			// Move Pointer
 			peer = peer->group_next;
@@ -767,7 +862,7 @@ void spread_message(SceNetAdhocctlUserNode * user, char * message)
 int get_user_state(SceNetAdhocctlUserNode * user)
 {
 	// Timeout Status
-	if((time(NULL) - user->last_recv) >= SERVER_USER_TIMEOUT) return USER_STATE_TIMED_OUT;
+	if((time(NULL) - user->last_recv) >= _server_timeout) return USER_STATE_TIMED_OUT;
 	
 	// Waiting Status
 	if(user->game == NULL) return USER_STATE_WAITING;
