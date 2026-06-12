@@ -26,6 +26,72 @@
 const char * strcpyxml(char * out, const char * in, uint32_t size);
 
 /**
+ * Validate and initialize database tables
+ */
+void validate_database(void)
+{
+	sqlite3 * db = NULL;
+	
+	if(sqlite3_open(SERVER_DATABASE, &db) != SQLITE_OK)
+	{
+		fprintf(stderr, "Error: Failed to open database %s\n", SERVER_DATABASE);
+		return;
+	}
+	
+	// Check if productids table exists
+	sqlite3_stmt * stmt = NULL;
+	const char * check_productids = "SELECT name FROM sqlite_master WHERE type='table' AND name='productids'";
+	int has_productids = 0;
+	
+	if(sqlite3_prepare_v2(db, check_productids, -1, &stmt, NULL) == SQLITE_OK)
+	{
+		if(sqlite3_step(stmt) == SQLITE_ROW)
+		{
+			has_productids = 1;
+		}
+		sqlite3_finalize(stmt);
+	}
+	
+	if(!has_productids)
+	{
+		printf("Warning: productids table not found, creating...\n");
+		char * errmsg = NULL;
+		const char * create_productids = "CREATE TABLE IF NOT EXISTS productids (productid TEXT PRIMARY KEY, gamename TEXT)";
+		
+		if(sqlite3_exec(db, create_productids, NULL, NULL, &errmsg) != SQLITE_OK)
+		{
+			fprintf(stderr, "Error creating productids table: %s\n", errmsg);
+			sqlite3_free(errmsg);
+		}
+		else
+		{
+			printf("Created productids table\n");
+		}
+	}
+	
+	// Check if crosslinks table exists (for future use)
+	const char * check_crosslinks = "SELECT name FROM sqlite_master WHERE type='table' AND name='crosslinks'";
+	int has_crosslinks = 0;
+	
+	if(sqlite3_prepare_v2(db, check_crosslinks, -1, &stmt, NULL) == SQLITE_OK)
+	{
+		if(sqlite3_step(stmt) == SQLITE_ROW)
+		{
+			has_crosslinks = 1;
+		}
+		sqlite3_finalize(stmt);
+	}
+	
+	if(!has_crosslinks)
+	{
+		printf("Note: crosslinks table not present (optional)\n");
+	}
+	
+	sqlite3_close(db);
+	printf("Database validation complete\n");
+}
+
+/**
  * Update Status Logfile
  */
 void update_status(void)

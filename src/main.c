@@ -80,6 +80,9 @@ int main(int argc, char * argv[])
 	// Load Configuration from Environment Variables
 	load_env_config();
 	
+	// Validate Database
+	validate_database();
+	
 	// Create Listening Socket
 	int server = create_listen_socket(_server_port);
 	

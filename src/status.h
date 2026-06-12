@@ -23,5 +23,10 @@
  */
 void update_status(void);
 
+/**
+ * Validate and initialize database tables
+ */
+void validate_database(void);
+
 #endif
 
