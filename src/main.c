@@ -29,11 +29,13 @@
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
+#include <arpa/inet.h>
 #include <fcntl.h>
 #include <errno.h>
 #include <config.h>
 #include <user.h>
 #include <status.h>
+#include <http_server.h>
 #include <stdlib.h>
 
 // Server Status
@@ -42,9 +44,16 @@ int _status = 0;
 // Server Configuration (with env override support)
 uint16_t _server_port = SERVER_PORT;
 uint32_t _server_max_users = SERVER_USER_MAXIMUM;
+uint32_t _server_max_users_per_ip = SERVER_IP_MAXIMUM;
 uint32_t _server_timeout = SERVER_USER_TIMEOUT;
 const char * _server_database = SERVER_DATABASE;
 const char * _server_status_path = SERVER_STATUS_XMLOUT;
+
+// Control Configuration
+uint16_t _control_port = 27313;
+
+// HTTP API Configuration
+uint16_t _http_port = 8080;
 
 // Function Prototypes
 void interrupt(int sig);
@@ -52,7 +61,8 @@ void load_env_config(void);
 void enable_address_reuse(int fd);
 void change_blocking_mode(int fd, int nonblocking);
 int create_listen_socket(uint16_t port);
-int server_loop(int server);
+int create_control_socket(uint16_t port);
+int server_loop(int server, int control);
 
 /**
  * Server Entry Point
@@ -86,14 +96,21 @@ int main(int argc, char * argv[])
 	// Create Listening Socket
 	int server = create_listen_socket(_server_port);
 	
+	// Create Control Socket (UDP)
+	int control = create_control_socket(_control_port);
+	
+	// Start HTTP Server on separate thread
+	start_http_server_thread(_http_port);
+	
 	// Created Listening Socket
 	if(server != -1)
 	{
 		// Notify User
 		printf("Listening for Connections on TCP Port %u.\n", _server_port);
+		if(control != -1) printf("Listening for Admin Commands on UDP Port %u.\n", _control_port);
 		
 		// Enter Server Loop
-		result = server_loop(server);
+		result = server_loop(server, control);
 		
 		// Notify User
 		printf("Shutdown complete.\n");
@@ -137,6 +154,14 @@ void load_env_config(void)
 		if(max_users > 0 && max_users <= 4096) _server_max_users = max_users;
 	}
 	
+	// Load max users per IP from env
+	const char * env_max_users_per_ip = getenv("ADHOC_MAX_USERS_PER_IP");
+	if(env_max_users_per_ip != NULL)
+	{
+		uint32_t max_users_ip = (uint32_t)atoi(env_max_users_per_ip);
+		if(max_users_ip > 0) _server_max_users_per_ip = max_users_ip;
+	}
+	
 	// Load timeout from env
 	const char * env_timeout = getenv("ADHOC_TIMEOUT");
 	if(env_timeout != NULL)
@@ -149,6 +174,7 @@ void load_env_config(void)
 	printf("Configuration:\n");
 	printf("  Port: %u\n", _server_port);
 	printf("  Max Users: %u\n", _server_max_users);
+	printf("  Max Users Per IP: %u\n", _server_max_users_per_ip);
 	printf("  Timeout: %u seconds\n", _server_timeout);
 }
 
@@ -240,11 +266,62 @@ int create_listen_socket(uint16_t port)
 }
 
 /**
+ * Create UDP Control Socket
+ * @param port UDP Port
+ * @return Socket Descriptor
+ */
+int create_control_socket(uint16_t port)
+{
+	// Create Socket
+	int fd = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
+	
+	// Created Socket
+	if(fd != -1)
+	{
+		// Enable Address Reuse
+		enable_address_reuse(fd);
+		
+		// Make Socket Nonblocking
+		change_blocking_mode(fd, 1);
+		
+		// Prepare Local Address Information
+		struct sockaddr_in local;
+		memset(&local, 0, sizeof(local));
+		local.sin_family = AF_INET;
+		local.sin_addr.s_addr = inet_addr("127.0.0.1"); // Only allow local commands
+		local.sin_port = htons(port);
+		
+		// Bind Local Address to Socket
+		int bindresult = bind(fd, (struct sockaddr *)&local, sizeof(local));
+		
+		// Bound Local Address to Socket
+		if(bindresult != -1)
+		{
+			// Return Socket
+			return fd;
+		}
+		
+		// Notify User
+		else printf("%s: bind returned %d.\n", __func__, bindresult);
+		
+		// Close Socket
+		close(fd);
+	}
+	
+	// Notify User
+	else printf("%s: socket returned %d.\n", __func__, fd);
+	
+	// Return Error
+	return -1;
+}
+
+/**
  * Server Main Loop
  * @param server Server Listening Socket
+ * @param control Control UDP Socket
  * @return OS Error Code
  */
-int server_loop(int server)
+int server_loop(int server, int control)
 {
 	// Set Running Status
 	_status = 1;
@@ -255,9 +332,9 @@ int server_loop(int server)
 	// Handling Loop
 	while(_status == 1)
 	{
-		// Prepare pollfd array
-		struct pollfd fds[SERVER_USER_MAXIMUM + 1];
-		SceNetAdhocctlUserNode * fd_to_user[SERVER_USER_MAXIMUM + 1];
+		// Prepare pollfd array using Variable Length Array
+		struct pollfd fds[_server_max_users + 2];
+		SceNetAdhocctlUserNode * fd_to_user[_server_max_users + 2];
 		int nfds = 1;  // Start with server socket
 		
 		// Add server socket
@@ -266,9 +343,22 @@ int server_loop(int server)
 		fds[0].revents = 0;
 		fd_to_user[0] = NULL;
 		
+		// Add control socket
+		if(control != -1)
+		{
+			fds[nfds].fd = control;
+			fds[nfds].events = POLLIN;
+			fds[nfds].revents = 0;
+			fd_to_user[nfds] = NULL;
+			nfds++;
+		}
+		
+		// Start index for users
+		int user_start_index = nfds;
+		
 		// Add user sockets
 		SceNetAdhocctlUserNode * user = _db_user;
-		while(user != NULL && nfds < (int)_server_max_users + 1 && nfds < SERVER_USER_MAXIMUM + 1)
+		while(user != NULL && nfds < _server_max_users + 2)
 		{
 			fds[nfds].fd = user->stream;
 			fds[nfds].events = POLLIN;
@@ -279,7 +369,7 @@ int server_loop(int server)
 			user = user->next;
 		}
 		
-		// Poll with 1000ms timeout (for user timeout checks)
+		// Poll with 1000ms timeout
 		int poll_result = poll(fds, nfds, 1000);
 		
 		// Handle poll errors
@@ -304,8 +394,61 @@ int server_loop(int server)
 			}
 		}
 		
+		// Handle Admin Commands (Control Socket)
+		static time_t last_admin_cmd_time = 0;
+		if(control != -1)
+		{
+			// Control is always fds[1] if it exists
+			if(fds[1].revents & POLLIN)
+			{
+				uint8_t ctrl_buf[1024];
+				int ctrl_len = recv(control, ctrl_buf, sizeof(ctrl_buf), 0);
+				
+				time_t current_time = time(NULL);
+				// Rate Limiting: Max 1 command per second
+				if(current_time - last_admin_cmd_time >= 1)
+				{
+					if(ctrl_len >= 1)
+					{
+						uint8_t type = ctrl_buf[0];
+						if(type == 1 && ctrl_len >= 2) // Global Broadcast
+						{
+							char msg[65];
+							memset(msg, 0, sizeof(msg));
+							int msg_len = ctrl_len - 1;
+							if(msg_len > 64) msg_len = 64;
+							memcpy(msg, ctrl_buf + 1, msg_len);
+							printf("Admin Global Broadcast: %s\n", msg);
+							spread_message(NULL, msg);
+						}
+						else if(type == 2 && ctrl_len >= 11) // Game Broadcast (1 byte type + 9 bytes game id + msg)
+						{
+							char game[10];
+							memset(game, 0, sizeof(game));
+							memcpy(game, ctrl_buf + 1, 9);
+							
+							char msg[65];
+							memset(msg, 0, sizeof(msg));
+							int msg_len = ctrl_len - 10;
+							if(msg_len > 64) msg_len = 64;
+							memcpy(msg, ctrl_buf + 10, msg_len);
+							
+							printf("Admin Game Broadcast (%s): %s\n", game, msg);
+							spread_game_message(game, msg);
+						}
+					}
+					last_admin_cmd_time = current_time;
+				}
+				else
+				{
+					// Dropped due to rate limit
+					printf("Dropped UDP Control Packet (Rate Limit Exceeded)\n");
+				}
+			}
+		}
+		
 		// Process user sockets
-		for(int i = 1; i < nfds; i++)
+		for(int i = user_start_index; i < nfds; i++)
 		{
 			user = fd_to_user[i];
 			if(user == NULL) continue;
@@ -330,8 +473,11 @@ int server_loop(int server)
 				}
 				
 				// Process complete packets
-				if(user->rxpos > 0)
+				uint32_t last_rxpos = 0;
+				while(user->rxpos > 0 && user->rxpos != last_rxpos)
 				{
+					last_rxpos = user->rxpos;
+					
 					// Waiting for Login Packet
 					if(get_user_state(user) == USER_STATE_WAITING)
 					{
@@ -387,6 +533,27 @@ int server_loop(int server)
 								memset(message, 0, sizeof(message));
 								strncpy(message, packet->message, sizeof(message) - 1);
 								clear_user_rxbuf(user, sizeof(SceNetAdhocctlChatPacketC2S));
+								
+								// Log chat to file
+								FILE *f = fopen("/app/webapp/chat.log", "a");
+								if(f) {
+									time_t now = time(NULL);
+									struct tm *t = localtime(&now);
+									char timeStr[32];
+									strftime(timeStr, sizeof(timeStr), "%Y-%m-%d %H:%M:%S", t);
+									
+									char safegamestr[10];
+									memset(safegamestr, 0, sizeof(safegamestr));
+									if (user->game != NULL) {
+										strncpy(safegamestr, (char *)user->game->game.data, PRODUCT_CODE_LENGTH);
+									} else {
+										strcpy(safegamestr, "UNKNOWN");
+									}
+									
+									fprintf(f, "[%s] [%s] %s: %s\n", timeStr, safegamestr, user->resolver.name.data, message);
+									fclose(f);
+								}
+								
 								spread_message(user, message);
 							}
 						}
@@ -425,10 +592,10 @@ int server_loop(int server)
 			user = next;
 		}
 		
-		// Update status periodically
+		// Update status periodically if dirty
 		static time_t last_status_update = 0;
 		time_t now = time(NULL);
-		if(now - last_status_update >= 1)
+		if(is_status_dirty() && now - last_status_update >= 1)
 		{
 			update_status();
 			last_status_update = now;
@@ -438,8 +605,9 @@ int server_loop(int server)
 	// Free User Database Memory
 	free_database();
 	
-	// Close Server Socket
+	// Close Server Sockets
 	close(server);
+	if (control != -1) close(control);
 	
 	// Return Success
 	return 0;

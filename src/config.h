@@ -29,6 +29,10 @@
 // Server User Maximum
 #define SERVER_USER_MAXIMUM 1024
 
+// Server IP User Maximum
+#define SERVER_IP_MAXIMUM 16
+
+
 // Server User Timeout (in seconds)
 #define SERVER_USER_TIMEOUT 15
 

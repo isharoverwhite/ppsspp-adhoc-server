@@ -137,7 +137,9 @@ extern SceNetAdhocctlGameNode * _db_game;
 
 // Server configuration
 extern uint32_t _server_max_users;
+extern uint32_t _server_max_users_per_ip;
 extern uint32_t _server_timeout;
+extern const char * _server_database;
 
 /**
  * Login User into Database (Stream)
@@ -189,6 +191,14 @@ void send_scan_results(SceNetAdhocctlUserNode * user);
  * @param message Chat Message
  */
 void spread_message(SceNetAdhocctlUserNode * user, char * message);
+
+/**
+ * Spread Chat Message to all players in a specific game
+ * @param game_name Target Game ID
+ * @param message Chat Message
+ */
+void spread_game_message(const char * game_name, const char * message);
+
 
 /**
  * Get User State

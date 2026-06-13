@@ -21,6 +21,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include <ctype.h>
 #include <unistd.h>
 #include <sys/socket.h>
 #include <errno.h>
@@ -37,6 +38,27 @@ SceNetAdhocctlUserNode * _db_user = NULL;
 
 // Game Database
 SceNetAdhocctlGameNode * _db_game = NULL;
+
+/**
+ * Helper to check if a nickname contains "ADMIN" (case-insensitive)
+ */
+static int contains_admin(const char *name) {
+	if (!name) return 0;
+	const char *admin = "admin";
+	int admin_len = 5;
+	int name_len = strlen(name);
+	for (int i = 0; i <= name_len - admin_len; i++) {
+		int match = 1;
+		for (int j = 0; j < admin_len; j++) {
+			if (tolower((unsigned char)name[i+j]) != admin[j]) {
+				match = 0;
+				break;
+			}
+		}
+		if (match) return 1;
+	}
+	return 0;
+}
 
 /**
  * Send All Data to Socket (handles partial sends)
@@ -80,21 +102,26 @@ void queue_send(SceNetAdhocctlUserNode * user, const void * data, size_t len)
 {
 	if(user == NULL || data == NULL || len == 0) return;
 	
-	// Calculate space available in TX buffer
 	uint32_t space = sizeof(user->tx) - user->tx_len;
 	
-	// If data fits, append to buffer
+	// If it doesn't fit, try to flush buffer first to make space
+	if(len > space)
+	{
+		flush_user_txbuf(user);
+		space = sizeof(user->tx) - user->tx_len;
+	}
+	
+	// If it fits now, append and flush
 	if(len <= space)
 	{
 		memcpy(user->tx + user->tx_len, data, len);
 		user->tx_len += len;
+		flush_user_txbuf(user);
 	}
 	else
 	{
-		// Buffer overflow - send what we can directly and ignore rest
-		// In P0.2 context, this shouldn't happen with current protocols
-		// In P1.X, we'd implement buffer flushing on POLLOUT
-		send_all(user->stream, data, len);
+		// Buffer overflow (client too slow), fatal issue
+		user->last_recv = 0; // Mark for disconnection
 	}
 }
 
@@ -106,24 +133,22 @@ void flush_user_txbuf(SceNetAdhocctlUserNode * user)
 {
 	if(user == NULL || user->tx_len == 0) return;
 	
-	// Try to send all buffered data
 	ssize_t sent = send_all(user->stream, user->tx, user->tx_len);
 	
 	if(sent == -1)
 	{
-		// Error - clear buffer
+		// Fatal socket error
 		user->tx_len = 0;
 		user->tx_head = 0;
+		user->last_recv = 0; // Mark for disconnection
 	}
 	else if(sent == (ssize_t)user->tx_len)
 	{
-		// All sent - clear buffer
 		user->tx_len = 0;
 		user->tx_head = 0;
 	}
 	else if(sent > 0)
 	{
-		// Partial send - remove sent portion from buffer
 		user->tx_len -= sent;
 		memmove(user->tx, user->tx + sent, user->tx_len);
 		user->tx_head = 0;
@@ -142,10 +167,15 @@ void login_user_stream(int fd, uint32_t ip)
 	{
 		// Check IP Duplication
 		SceNetAdhocctlUserNode * u = _db_user;
-		while(u != NULL && u->resolver.ip != ip) u = u->next;
+		uint32_t ip_count = 0;
+		while(u != NULL)
+		{
+			if(u->resolver.ip == ip) ip_count++;
+			u = u->next;
+		}
 		
-		// Unique IP Address
-		if(u == NULL)
+		// IP Limit Check
+		if(ip_count < _server_max_users_per_ip)
 		{
 			// Allocate User Node Memory
 			SceNetAdhocctlUserNode * user = (SceNetAdhocctlUserNode *)malloc(sizeof(SceNetAdhocctlUserNode));
@@ -178,7 +208,7 @@ void login_user_stream(int fd, uint32_t ip)
 				_db_user_count++;
 				
 				// Update Status Log
-				update_status();
+				update_status_dirty();
 				
 				// Exit Function
 				return;
@@ -188,6 +218,54 @@ void login_user_stream(int fd, uint32_t ip)
 		
 	// Duplicate IP, Allocation Error or not enough space - Close Stream
 	close(fd);
+}
+
+/**
+ * Check if User is Banned by IP or MAC
+ * @param ip IP Address
+ * @param mac MAC Address
+ * @return 1 if banned, 0 otherwise
+ */
+int check_is_banned(uint32_t ip, SceNetEtherAddr * mac)
+{
+	int is_banned = 0;
+	sqlite3 * db = NULL;
+	
+	if(sqlite3_open(_server_database, &db) == SQLITE_OK)
+	{
+		sqlite3_exec(db, "PRAGMA synchronous = NORMAL; PRAGMA journal_mode = WAL;", NULL, NULL, NULL);
+		char ip_str[16];
+		uint8_t * ipa = (uint8_t *)&ip;
+		snprintf(ip_str, sizeof(ip_str), "%u.%u.%u.%u", ipa[0], ipa[1], ipa[2], ipa[3]);
+		
+		char mac_str[18];
+		if(mac != NULL) {
+			snprintf(mac_str, sizeof(mac_str), "%02X:%02X:%02X:%02X:%02X:%02X", 
+				mac->data[0], mac->data[1], mac->data[2], mac->data[3], mac->data[4], mac->data[5]);
+		} else {
+			mac_str[0] = '\0';
+		}
+		
+		sqlite3_stmt * stmt = NULL;
+		const char * sql = "SELECT id FROM Ban WHERE ip = ? OR mac = ? LIMIT 1";
+		if(sqlite3_prepare_v2(db, sql, -1, &stmt, NULL) == SQLITE_OK)
+		{
+			sqlite3_bind_text(stmt, 1, ip_str, -1, SQLITE_TRANSIENT);
+			if(mac != NULL) {
+				sqlite3_bind_text(stmt, 2, mac_str, -1, SQLITE_TRANSIENT);
+			} else {
+				sqlite3_bind_null(stmt, 2);
+			}
+			
+			if(sqlite3_step(stmt) == SQLITE_ROW) {
+				is_banned = 1;
+			}
+			sqlite3_finalize(stmt);
+		}
+		sqlite3_close(db);
+	}
+	
+	return is_banned;
 }
 
 /**
@@ -208,10 +286,42 @@ void login_user_data(SceNetAdhocctlUserNode * user, SceNetAdhocctlLoginPacketC2S
 	}
 	
 	// Valid Packet Data
-	if(valid_product_code == 1 && memcmp(&data->mac, "\xFF\xFF\xFF\xFF\xFF\xFF", sizeof(data->mac)) != 0 && memcmp(&data->mac, "\x00\x00\x00\x00\x00\x00", sizeof(data->mac)) != 0 && data->name.data[0] != 0)
+	if(valid_product_code == 1 && memcmp(&data->mac, "\xFF\xFF\xFF\xFF\xFF\xFF", sizeof(data->mac)) != 0 && memcmp(&data->mac, "\x00\x00\x00\x00\x00\x00", sizeof(data->mac)) != 0 && data->name.data[0] != 0 && !contains_admin((const char*)data->name.data))
 	{
+		// Check Ban Status
+		if(check_is_banned(user->resolver.ip, &data->mac))
+		{
+			uint8_t * ip = (uint8_t *)&user->resolver.ip;
+			printf("Connection Rejected: %s (MAC: %02X:%02X:%02X:%02X:%02X:%02X - IP: %u.%u.%u.%u) is banned.\n", 
+				(char *)data->name.data, data->mac.data[0], data->mac.data[1], data->mac.data[2], 
+				data->mac.data[3], data->mac.data[4], data->mac.data[5], ip[0], ip[1], ip[2], ip[3]);
+			logout_user(user);
+			return;
+		}
+
 		// Game Product Override
 		game_product_override(&data->game);
+		
+		// MAC Deduplication: Kick existing session with same MAC
+		SceNetAdhocctlUserNode * existing = _db_user;
+		while(existing != NULL)
+		{
+			SceNetAdhocctlUserNode * next = existing->next;
+			printf("DEBUG: existing MAC %02X:%02X:%02X:%02X:%02X:%02X, new MAC %02X:%02X:%02X:%02X:%02X:%02X\n",
+				existing->resolver.mac.data[0], existing->resolver.mac.data[1], existing->resolver.mac.data[2], existing->resolver.mac.data[3], existing->resolver.mac.data[4], existing->resolver.mac.data[5],
+				data->mac.data[0], data->mac.data[1], data->mac.data[2], data->mac.data[3], data->mac.data[4], data->mac.data[5]);
+			// Only kick if MAC matches and it's a DIFFERENT socket (not the new one)
+			if(existing != user && memcmp(&existing->resolver.mac, &data->mac, sizeof(SceNetEtherAddr)) == 0)
+			{
+				uint8_t * ip_old = (uint8_t *)&existing->resolver.ip;
+				printf("Kicking old session of MAC %02X:%02X:%02X:%02X:%02X:%02X (IP: %u.%u.%u.%u) due to reconnect.\n",
+					data->mac.data[0], data->mac.data[1], data->mac.data[2],
+					data->mac.data[3], data->mac.data[4], data->mac.data[5],
+					ip_old[0], ip_old[1], ip_old[2], ip_old[3]);
+				logout_user(existing);
+			}
+			existing = next;
+		}
 		
 		// Find existing Game
 		SceNetAdhocctlGameNode * game = _db_game;
@@ -261,8 +371,35 @@ void login_user_data(SceNetAdhocctlUserNode * user, SceNetAdhocctlLoginPacketC2S
 			strncpy(safegamestr, game->game.data, PRODUCT_CODE_LENGTH);
 			printf("%s (MAC: %02X:%02X:%02X:%02X:%02X:%02X - IP: %u.%u.%u.%u) started playing %s.\n", (char *)user->resolver.name.data, user->resolver.mac.data[0], user->resolver.mac.data[1], user->resolver.mac.data[2], user->resolver.mac.data[3], user->resolver.mac.data[4], user->resolver.mac.data[5], ip[0], ip[1], ip[2], ip[3], safegamestr);
 			
+			// Insert into PlayerHistory
+			sqlite3 * db = NULL;
+			if(sqlite3_open(_server_database, &db) == SQLITE_OK)
+			{
+				sqlite3_exec(db, "PRAGMA synchronous = NORMAL; PRAGMA journal_mode = WAL;", NULL, NULL, NULL);
+				sqlite3_stmt * stmt = NULL;
+				const char * sql = "INSERT INTO PlayerHistory (mac, ip, name, game, joinedAt) VALUES (?, ?, ?, ?, datetime('now'))";
+				if(sqlite3_prepare_v2(db, sql, -1, &stmt, NULL) == SQLITE_OK)
+				{
+					char ip_str[16];
+					snprintf(ip_str, sizeof(ip_str), "%u.%u.%u.%u", ip[0], ip[1], ip[2], ip[3]);
+					char mac_str[18];
+					snprintf(mac_str, sizeof(mac_str), "%02X:%02X:%02X:%02X:%02X:%02X", 
+						user->resolver.mac.data[0], user->resolver.mac.data[1], user->resolver.mac.data[2], 
+						user->resolver.mac.data[3], user->resolver.mac.data[4], user->resolver.mac.data[5]);
+					
+					sqlite3_bind_text(stmt, 1, mac_str, -1, SQLITE_TRANSIENT);
+					sqlite3_bind_text(stmt, 2, ip_str, -1, SQLITE_TRANSIENT);
+					sqlite3_bind_text(stmt, 3, (char *)user->resolver.name.data, -1, SQLITE_TRANSIENT);
+					sqlite3_bind_text(stmt, 4, safegamestr, -1, SQLITE_TRANSIENT);
+					
+					sqlite3_step(stmt);
+					sqlite3_finalize(stmt);
+				}
+				sqlite3_close(db);
+			}
+			
 			// Update Status Log
-			update_status();
+			update_status_dirty();
 			
 			// Leave Function
 			return;
@@ -312,6 +449,28 @@ void logout_user(SceNetAdhocctlUserNode * user)
 		strncpy(safegamestr, user->game->game.data, PRODUCT_CODE_LENGTH);
 		printf("%s (MAC: %02X:%02X:%02X:%02X:%02X:%02X - IP: %u.%u.%u.%u) stopped playing %s.\n", (char *)user->resolver.name.data, user->resolver.mac.data[0], user->resolver.mac.data[1], user->resolver.mac.data[2], user->resolver.mac.data[3], user->resolver.mac.data[4], user->resolver.mac.data[5], ip[0], ip[1], ip[2], ip[3], safegamestr);
 		
+		// Update PlayerHistory leftAt
+		sqlite3 * db = NULL;
+		if(sqlite3_open(_server_database, &db) == SQLITE_OK)
+		{
+			sqlite3_exec(db, "PRAGMA synchronous = NORMAL; PRAGMA journal_mode = WAL;", NULL, NULL, NULL);
+			sqlite3_stmt * stmt = NULL;
+			const char * sql = "UPDATE PlayerHistory SET leftAt = datetime('now') WHERE mac = ? AND leftAt IS NULL";
+			if(sqlite3_prepare_v2(db, sql, -1, &stmt, NULL) == SQLITE_OK)
+			{
+				char mac_str[18];
+				snprintf(mac_str, sizeof(mac_str), "%02X:%02X:%02X:%02X:%02X:%02X", 
+					user->resolver.mac.data[0], user->resolver.mac.data[1], user->resolver.mac.data[2], 
+					user->resolver.mac.data[3], user->resolver.mac.data[4], user->resolver.mac.data[5]);
+				
+				sqlite3_bind_text(stmt, 1, mac_str, -1, SQLITE_TRANSIENT);
+				
+				sqlite3_step(stmt);
+				sqlite3_finalize(stmt);
+			}
+			sqlite3_close(db);
+		}
+		
 		// Fix Game Player Count
 		user->game->playercount--;
 		
@@ -347,7 +506,7 @@ void logout_user(SceNetAdhocctlUserNode * user)
 	_db_user_count--;
 	
 	// Update Status Log
-	update_status();
+	update_status_dirty();
 }
 
 /**
@@ -480,7 +639,7 @@ void connect_user(SceNetAdhocctlUserNode * user, SceNetAdhocctlGroupName * group
 					packet.ip = user->resolver.ip;
 					
 					// Send Data
-					send_all(peer->stream, &packet, sizeof(packet));
+					queue_send(peer, &packet, sizeof(packet));
 					
 					// Set Player Name
 					packet.name = peer->resolver.name;
@@ -492,7 +651,7 @@ void connect_user(SceNetAdhocctlUserNode * user, SceNetAdhocctlGroupName * group
 					packet.ip = peer->resolver.ip;
 					
 					// Send Data
-					send_all(user->stream, &packet, sizeof(packet));
+					queue_send(user, &packet, sizeof(packet));
 					
 					// Set BSSID
 					if(peer->group_next == NULL) bssid.mac = peer->resolver.mac;
@@ -513,7 +672,7 @@ void connect_user(SceNetAdhocctlUserNode * user, SceNetAdhocctlGroupName * group
 				g->playercount++;
 				
 				// Send Network BSSID to User
-				send_all(user->stream, &bssid, sizeof(bssid));
+				queue_send(user, &bssid, sizeof(bssid));
 				
 				// Notify User
 				uint8_t * ip = (uint8_t *)&user->resolver.ip;
@@ -526,7 +685,7 @@ void connect_user(SceNetAdhocctlUserNode * user, SceNetAdhocctlGroupName * group
 				printf("%s (MAC: %02X:%02X:%02X:%02X:%02X:%02X - IP: %u.%u.%u.%u) joined %s group %s.\n", (char *)user->resolver.name.data, user->resolver.mac.data[0], user->resolver.mac.data[1], user->resolver.mac.data[2], user->resolver.mac.data[3], user->resolver.mac.data[4], user->resolver.mac.data[5], ip[0], ip[1], ip[2], ip[3], safegamestr, safegroupstr);
 
 				// Update Status Log
-				update_status();
+				update_status_dirty();
 				
 				// Exit Function
 				return;
@@ -607,7 +766,7 @@ void disconnect_user(SceNetAdhocctlUserNode * user)
 			packet.ip = user->resolver.ip;
 			
 			// Send Data
-			send_all(peer->stream, &packet, sizeof(packet));
+			queue_send(peer, &packet, sizeof(packet));
 			
 			// Move Pointer
 			peer = peer->group_next;
@@ -648,7 +807,7 @@ void disconnect_user(SceNetAdhocctlUserNode * user)
 		user->group_prev = NULL;
 		
 		// Update Status Log
-		update_status();
+		update_status_dirty();
 		
 		// Exit Function
 		return;
@@ -707,12 +866,12 @@ void send_scan_results(SceNetAdhocctlUserNode * user)
 			}
 			
 			// Send Group Packet
-			send_all(user->stream, &packet, sizeof(packet));
+			queue_send(user, &packet, sizeof(packet));
 		}
 		
 		// Notify Player of End of Scan
 		uint8_t opcode = OPCODE_SCAN_COMPLETE;
-		send_all(user->stream, &opcode, 1);
+		queue_send(user, &opcode, 1);
 		
 		// Notify User
 		uint8_t * ip = (uint8_t *)&user->resolver.ip;
@@ -768,11 +927,14 @@ void spread_message(SceNetAdhocctlUserNode * user, char * message)
 				// Set Chat Opcode
 				packet.base.base.opcode = OPCODE_CHAT;
 				
+				// Set Sender Name to ADMIN
+				strcpy((char *)packet.name.data, "ADMIN");
+				
 				// Set Chat Message
 				strcpy(packet.base.message, message);
 				
 				// Send Data
-				send_all(user->stream, &packet, sizeof(packet));
+				queue_send(user, &packet, sizeof(packet));
 			}
 		}
 		
@@ -813,7 +975,7 @@ void spread_message(SceNetAdhocctlUserNode * user, char * message)
 			packet.name = user->resolver.name;
 			
 			// Send Data
-			send_all(peer->stream, &packet, sizeof(packet));
+			queue_send(peer, &packet, sizeof(packet));
 			
 			// Move Pointer
 			peer = peer->group_next;
@@ -906,6 +1068,9 @@ void game_product_relink(SceNetAdhocctlProductCode * product, char * from, char 
  */
 void game_product_override(SceNetAdhocctlProductCode * product)
 {
+	// Invalid Arguments
+	if(product == NULL) return;
+
 	// Safe Product Code
 	char productid[PRODUCT_CODE_LENGTH + 1];
 	
@@ -913,99 +1078,101 @@ void game_product_override(SceNetAdhocctlProductCode * product)
 	strncpy(productid, product->data, PRODUCT_CODE_LENGTH);
 	productid[PRODUCT_CODE_LENGTH] = 0;
 	
+	// Check RAM Cache for Crosslinks first (Fast path)
+	const char * crosslink = find_cached_crosslink(productid);
+	if(crosslink != NULL)
+	{
+		// Crosslink Product Code
+		strncpy(product->data, crosslink, PRODUCT_CODE_LENGTH);
+		
+		// Log Crosslink
+		printf("Crosslinked %s to %s (from RAM).\n", productid, crosslink);
+		
+		// Exit Function
+		return;
+	}
+	
+	// Check if Product ID exists in RAM Cache
+	if(is_productid_cached(productid))
+	{
+		// Already known, nothing to do
+		return;
+	}
+	
+	// If not in cache, we need to handle unknown game (Slow path - SQLite)
 	// Database Handle
 	sqlite3 * db = NULL;
 	
 	// Open Database
-	if(sqlite3_open(SERVER_DATABASE, &db) == SQLITE_OK)
+	if(sqlite3_open(_server_database, &db) == SQLITE_OK)
 	{
-		// Crosslinked Flag
-		int crosslinked = 0;
-		
-		// Exists Flag
+		sqlite3_exec(db, "PRAGMA synchronous = NORMAL; PRAGMA journal_mode = WAL;", NULL, NULL, NULL);
+		// Double check in DB just in case cache was loaded before this addition
+		sqlite3_stmt * stmt = NULL;
+		const char * sql_check = "SELECT id FROM productids WHERE id=?;";
 		int exists = 0;
 		
-		// SQL Statements
-		const char * sql = "SELECT id_to FROM crosslinks WHERE id_from=?;";
-		const char * sql2 = "SELECT * FROM productids WHERE id=?;";
-		const char * sql3 = "INSERT INTO productids(id, name) VALUES(?, ?);";
-		
-		// Prepared SQL Statement
-		sqlite3_stmt * statement = NULL;
-		
-		// Prepare SQL Statement
-		if(sqlite3_prepare_v2(db, sql, strlen(sql) + 1, &statement, NULL) == SQLITE_OK)
+		if(sqlite3_prepare_v2(db, sql_check, -1, &stmt, NULL) == SQLITE_OK)
 		{
-			// Bind SQL Statement Data
-			if(sqlite3_bind_text(statement, 1, productid, strlen(productid), SQLITE_STATIC) == SQLITE_OK)
+			if(sqlite3_bind_text(stmt, 1, productid, strlen(productid), SQLITE_STATIC) == SQLITE_OK)
 			{
-				// Found Matching Row
-				if(sqlite3_step(statement) == SQLITE_ROW)
-				{
-					// Grab Crosslink ID
-					const char * crosslink = (const char *)sqlite3_column_text(statement, 0);
-					
-					// Crosslink Product Code
-					strncpy(product->data, crosslink, PRODUCT_CODE_LENGTH);
-					
-					// Log Crosslink
-					printf("Crosslinked %s to %s.\n", productid, crosslink);
-					
-					// Set Crosslinked Flag
-					crosslinked = 1;
-				}
+				if(sqlite3_step(stmt) == SQLITE_ROW) exists = 1;
 			}
-			
-			// Destroy Prepared SQL Statement
-			sqlite3_finalize(statement);
+			sqlite3_finalize(stmt);
 		}
 		
-		// Not Crosslinked
-		if(!crosslinked)
+		if(!exists)
 		{
-			// Prepare SQL Statement
-			if(sqlite3_prepare_v2(db, sql2, strlen(sql2) + 1, &statement, NULL) == SQLITE_OK)
+			const char * sql_ins = "INSERT INTO productids(id, name) VALUES(?, ?);";
+			if(sqlite3_prepare_v2(db, sql_ins, -1, &stmt, NULL) == SQLITE_OK)
 			{
-				// Bind SQL Statement Data
-				if(sqlite3_bind_text(statement, 1, productid, strlen(productid), SQLITE_STATIC) == SQLITE_OK)
+				if(sqlite3_bind_text(stmt, 1, productid, strlen(productid), SQLITE_STATIC) == SQLITE_OK && 
+				   sqlite3_bind_text(stmt, 2, productid, strlen(productid), SQLITE_STATIC) == SQLITE_OK)
 				{
-					// Found Matching Row
-					if(sqlite3_step(statement) == SQLITE_ROW)
+					if(sqlite3_step(stmt) == SQLITE_DONE)
 					{
-						// Set Exists Flag
-						exists = 1;
+						printf("Added Unknown Product ID %s to Database.\n", productid);
+						// Also add to RAM cache so we don't hit SQLite again for this game
+						add_to_productid_cache(productid, productid);
 					}
 				}
-				
-				// Destroy Prepare SQL Statement
-				sqlite3_finalize(statement);
-			}
-			
-			// Game doesn't exist in Database
-			if(!exists)
-			{
-				// Prepare SQL Statement
-				if(sqlite3_prepare_v2(db, sql3, strlen(sql3) + 1, &statement, NULL) == SQLITE_OK)
-				{
-					// Bind SQL Statement Data
-					if(sqlite3_bind_text(statement, 1, productid, strlen(productid), SQLITE_STATIC) == SQLITE_OK && sqlite3_bind_text(statement, 2, productid, strlen(productid), SQLITE_STATIC) == SQLITE_OK)
-					{
-						// Save Product ID to Database
-						if(sqlite3_step(statement) == SQLITE_DONE)
-						{
-							// Log Addition
-							printf("Added Unknown Product ID %s to Database.\n", productid);
-						}
-					}
-					
-					// Destroy Prepare SQL Statement
-					sqlite3_finalize(statement);
-				}
+				sqlite3_finalize(stmt);
 			}
 		}
+		else
+		{
+			// It exists in DB but not in cache? Add it to cache now.
+			add_to_productid_cache(productid, productid);
+		}
 		
-		// Close Database
 		sqlite3_close(db);
 	}
 }
 
+/**
+ * Spread Chat Message to all players in a specific game
+ * @param game_name Target Game ID
+ * @param message Chat Message
+ */
+void spread_game_message(const char * game_name, const char * message)
+{
+	if(game_name == NULL || message == NULL) return;
+	
+	SceNetAdhocctlUserNode * user = _db_user;
+	for(; user != NULL; user = user->next)
+	{
+		if(user->group != NULL && user->game != NULL)
+		{
+			// Match Game
+			if(strncmp((char *)user->game->game.data, game_name, PRODUCT_CODE_LENGTH) == 0)
+			{
+				SceNetAdhocctlChatPacketS2C packet;
+				memset(&packet, 0, sizeof(packet));
+				packet.base.base.opcode = OPCODE_CHAT;
+				strcpy((char *)packet.name.data, "ADMIN");
+				strcpy(packet.base.message, message);
+				queue_send(user, &packet, sizeof(packet));
+			}
+		}
+	}
+}

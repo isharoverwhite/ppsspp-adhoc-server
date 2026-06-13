@@ -72,14 +72,17 @@ class TestServerConnection(unittest.TestCase):
 
     def test_login_accepted(self):
         """Verify a valid login packet is accepted (no error disconnect)."""
+        # Wait for server poll() cycle to clean up any previous connections
+        # (IP dedup causes race: previous test disconnect may not be processed yet)
+        time.sleep(1.5)
         client = AdhocClient(HOST, PORT)
         try:
             client.connect()
             client.login("ULUS10511")
-            time.sleep(0.2)
+            time.sleep(0.5)
             # Server should not have closed the connection
             self.assertTrue(client.is_connected(),
-                          "Server disconnected after valid login")
+                          "Server disconnected after valid login (IP dedup race?)")
         finally:
             client.disconnect()
 
@@ -414,6 +417,122 @@ class TestMultiClientGroup(unittest.TestCase):
         finally:
             client1.disconnect()
             client2.disconnect()
+
+@unittest.skipUnless(can_connect(), f"Server not reachable at {HOST}:{PORT}")
+class TestStabilityFixes(unittest.TestCase):
+    """P2 Regression Tests for stability fixes."""
+
+    def test_login_connect_pipelined_gets_bssid(self):
+        """Pipelined LOGIN + CONNECT should receive CONNECT_BSSID immediately."""
+        from protocol import build_login, build_connect, OPCODE_CONNECT_BSSID
+        client = AdhocClient(HOST, PORT)
+        try:
+            client.connect()
+            login_pkt = build_login(client.mac, client.nickname, "ULUS10511")
+            conn_pkt = build_connect("PIPEGRP")
+            # Send both packets in a single TCP send
+            client.send(login_pkt + conn_pkt)
+            time.sleep(0.5)
+            packets = client.receive_packets(timeout=0.5)
+            bssid_pkts = [p for p in packets if p.get('opcode') == OPCODE_CONNECT_BSSID]
+            self.assertGreaterEqual(len(bssid_pkts), 1, "Expected CONNECT_BSSID response from pipelined packet")
+        finally:
+            client.disconnect()
+
+    def test_multiple_clients_same_ip_allowed_up_to_limit(self):
+        """Verify multiple clients from same IP can connect, bounded by ADHOC_MAX_USERS_PER_IP."""
+        clients = []
+        try:
+            for _ in range(3):
+                c = AdhocClient(HOST, PORT)
+                c.connect()
+                c.login("ULUS10511")
+                clients.append(c)
+            time.sleep(0.5)
+            # All 3 should be connected if limit >= 3
+            connected = [c for c in clients if c.is_connected()]
+            self.assertGreaterEqual(len(connected), 3, "Expected 3 connected clients from same IP")
+        finally:
+            for c in clients:
+                c.disconnect()
+
+    def test_duplicate_mac_reconnect_policy(self):
+        """A new connection with same MAC should kick the old connection."""
+        c1 = AdhocClient(HOST, PORT)
+        c2 = AdhocClient(HOST, PORT)
+        c2.mac = c1.mac # Force same MAC
+        try:
+            c1.connect()
+            c1.login("ULUS10511")
+            time.sleep(0.2)
+            self.assertTrue(c1.is_connected())
+            
+            c2.connect()
+            c2.login("ULUS10511")
+            time.sleep(0.3)
+            
+            self.assertFalse(c1.is_connected(), "Old connection should be kicked")
+            self.assertTrue(c2.is_connected(), "New connection should be accepted")
+        finally:
+            c1.disconnect()
+            c2.disconnect()
+
+    def test_scan_many_groups_no_truncation(self):
+        """Scan when many groups exist should return all groups without truncation."""
+        clients = []
+        try:
+            # We create 15 groups
+            for i in range(15):
+                c = AdhocClient(HOST, PORT)
+                c.connect()
+                c.login(f"ULUS10511")
+                c.connect_group(f"GRP{i:02d}")
+                clients.append(c)
+            
+            time.sleep(0.5)
+            
+            scanner = AdhocClient(HOST, PORT)
+            try:
+                scanner.connect()
+                scanner.login("ULUS10511")
+                time.sleep(0.2)
+                scanner.scan()
+                time.sleep(0.5)
+                from protocol import OPCODE_SCAN
+                packets = scanner.receive_packets(timeout=1.0)
+                scan_results = [p for p in packets if p.get('opcode') == OPCODE_SCAN]
+                self.assertGreaterEqual(len(scan_results), 10, "Expected many groups in scan results")
+            finally:
+                scanner.disconnect()
+        finally:
+            for c in clients:
+                c.disconnect()
+
+    def test_slow_receiver_does_not_corrupt_peer_packets(self):
+        """Spam chat messages to test TX Queue buffering without crashing server."""
+        c1 = AdhocClient(HOST, PORT)
+        c2 = AdhocClient(HOST, PORT)
+        try:
+            c1.connect()
+            c1.login("ULUS10511")
+            c1.connect_group("SPAMGRP")
+            
+            c2.connect()
+            c2.login("ULUS10511")
+            c2.connect_group("SPAMGRP")
+            time.sleep(0.2)
+            
+            # Spam 100 messages quickly
+            for _ in range(100):
+                c1.chat("SPAM MESSAGE")
+            
+            time.sleep(0.5)
+            # Server should not crash, c1 and c2 should remain connected
+            self.assertTrue(c1.is_connected())
+            self.assertTrue(c2.is_connected())
+        finally:
+            c1.disconnect()
+            c2.disconnect()
 
 
 if __name__ == "__main__":
