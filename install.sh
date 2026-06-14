@@ -42,12 +42,24 @@ if ! echo "#include <sqlite3.h>" | gcc -E - > /dev/null 2>&1; then
 fi
 
 if [ $MISSING_DEPS -eq 1 ]; then
-    echo ""
-    echo "Please install missing dependencies before running this script:"
-    echo "  Ubuntu/Debian : sudo apt update && sudo apt install -y build-essential libsqlite3-dev nodejs npm"
-    echo "  CentOS/RHEL   : sudo yum groupinstall 'Development Tools' && sudo yum install -y sqlite-devel nodejs npm"
-    echo "  macOS         : xcode-select --install && brew install sqlite node"
-    exit 1
+    echo "📦 Attempting to automatically install missing dependencies..."
+    if command -v apt-get &> /dev/null; then
+        echo "🐧 Detected Debian/Ubuntu. Installing packages via apt..."
+        sudo apt-get update
+        sudo apt-get install -y build-essential libsqlite3-dev nodejs npm
+    elif command -v yum &> /dev/null; then
+        echo "🐧 Detected CentOS/RHEL. Installing packages via yum..."
+        sudo yum groupinstall -y 'Development Tools'
+        sudo yum install -y sqlite-devel nodejs npm
+    elif command -v brew &> /dev/null; then
+        echo "🍎 Detected macOS. Installing packages via brew..."
+        brew install sqlite node
+    else
+        echo "❌ Error: Could not detect supported package manager (apt/yum/brew)."
+        echo "Please install dependencies manually: gcc, make, sqlite3 headers, nodejs, npm"
+        exit 1
+    fi
+    echo "✅ Dependencies installed successfully!"
 fi
 
 # 3. Build C Backend
