@@ -377,7 +377,7 @@ void login_user_data(SceNetAdhocctlUserNode * user, SceNetAdhocctlLoginPacketC2S
 			{
 				sqlite3_exec(db, "PRAGMA synchronous = NORMAL; PRAGMA journal_mode = WAL;", NULL, NULL, NULL);
 				sqlite3_stmt * stmt = NULL;
-				const char * sql = "INSERT INTO PlayerHistory (mac, ip, name, game, joinedAt) VALUES (?, ?, ?, ?, datetime('now'))";
+				const char * sql = "INSERT INTO PlayerHistory (mac, ip, name, game, joinedAt) VALUES (?, ?, ?, ?, strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))";
 				if(sqlite3_prepare_v2(db, sql, -1, &stmt, NULL) == SQLITE_OK)
 				{
 					char ip_str[16];
@@ -396,7 +396,7 @@ void login_user_data(SceNetAdhocctlUserNode * user, SceNetAdhocctlLoginPacketC2S
 					sqlite3_finalize(stmt);
 				}
 
-				const char * sql_chat = "INSERT INTO ChatMessage (mac, name, game, \"group\", message, createdAt) VALUES ('SYSTEM', 'SYSTEM', 'GLOBAL', 'GLOBAL', ?, datetime('now'))";
+				const char * sql_chat = "INSERT INTO ChatMessage (mac, name, game, \"group\", message, createdAt) VALUES ('SYSTEM', 'SYSTEM', 'GLOBAL', 'GLOBAL', ?, strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))";
 				if(sqlite3_prepare_v2(db, sql_chat, -1, &stmt, NULL) == SQLITE_OK)
 				{
 					const char * gamename = find_cached_gamename(safegamestr);
@@ -470,7 +470,7 @@ void logout_user(SceNetAdhocctlUserNode * user)
 		{
 			sqlite3_exec(db, "PRAGMA synchronous = NORMAL; PRAGMA journal_mode = WAL;", NULL, NULL, NULL);
 			sqlite3_stmt * stmt = NULL;
-			const char * sql = "UPDATE PlayerHistory SET leftAt = datetime('now') WHERE mac = ? AND leftAt IS NULL";
+			const char * sql = "UPDATE PlayerHistory SET leftAt = strftime('%Y-%m-%dT%H:%M:%fZ', 'now') WHERE mac = ? AND leftAt IS NULL";
 			if(sqlite3_prepare_v2(db, sql, -1, &stmt, NULL) == SQLITE_OK)
 			{
 				char mac_str[18];
@@ -484,7 +484,7 @@ void logout_user(SceNetAdhocctlUserNode * user)
 				sqlite3_finalize(stmt);
 			}
 
-			const char * sql_chat = "INSERT INTO ChatMessage (mac, name, game, \"group\", message, createdAt) VALUES ('SYSTEM', 'SYSTEM', 'GLOBAL', 'GLOBAL', ?, datetime('now'))";
+			const char * sql_chat = "INSERT INTO ChatMessage (mac, name, game, \"group\", message, createdAt) VALUES ('SYSTEM', 'SYSTEM', 'GLOBAL', 'GLOBAL', ?, strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))";
 			if(sqlite3_prepare_v2(db, sql_chat, -1, &stmt, NULL) == SQLITE_OK)
 			{
 				const char * gamename = find_cached_gamename(safegamestr);
@@ -719,7 +719,7 @@ void connect_user(SceNetAdhocctlUserNode * user, SceNetAdhocctlGroupName * group
 				{
 					sqlite3_exec(db, "PRAGMA synchronous = NORMAL; PRAGMA journal_mode = WAL;", NULL, NULL, NULL);
 					sqlite3_stmt * stmt = NULL;
-					const char * sql_chat = "INSERT INTO ChatMessage (mac, name, game, \"group\", message, createdAt) VALUES ('SYSTEM', 'SYSTEM', ?, ?, ?, datetime('now'))";
+					const char * sql_chat = "INSERT INTO ChatMessage (mac, name, game, \"group\", message, createdAt) VALUES ('SYSTEM', 'SYSTEM', ?, ?, ?, strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))";
 					if(sqlite3_prepare_v2(db, sql_chat, -1, &stmt, NULL) == SQLITE_OK)
 					{
 						const char * gamename = find_cached_gamename(safegamestr);

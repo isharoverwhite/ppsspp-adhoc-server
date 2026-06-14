@@ -83,6 +83,18 @@ npx prisma db push
 echo "📦 Seeding game names into database..."
 npx prisma db seed
 
+echo "🔧 Patching legacy DateTime formats in database..."
+node -e "
+const { PrismaClient } = require('./src/generated/prisma');
+const prisma = new PrismaClient();
+async function main() {
+  await prisma.\$executeRawUnsafe(\"UPDATE PlayerHistory SET joinedAt = replace(joinedAt, ' ', 'T') || '.000Z' WHERE joinedAt NOT LIKE '%T%'\");
+  await prisma.\$executeRawUnsafe(\"UPDATE PlayerHistory SET leftAt = replace(leftAt, ' ', 'T') || '.000Z' WHERE leftAt IS NOT NULL AND leftAt NOT LIKE '%T%'\");
+  await prisma.\$executeRawUnsafe(\"UPDATE ChatMessage SET createdAt = replace(createdAt, ' ', 'T') || '.000Z' WHERE createdAt NOT LIKE '%T%'\");
+}
+main().catch(console.error).finally(() => prisma.\$disconnect());
+"
+
 npm run build
 cd ..
 

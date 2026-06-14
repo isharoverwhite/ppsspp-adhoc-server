@@ -83,16 +83,33 @@ export async function getServerStatus() {
             return acc + realGroups.length;
         }, 0);
 
-        // Fetch today's active usage seconds
-        const todayDateStr = new Date().toISOString().split('T')[0];
+        // Fetch today's active usage seconds from PlayerHistory
+        const todayStart = new Date();
+        todayStart.setUTCHours(0, 0, 0, 0);
+
         let uptimeSeconds = 0;
         try {
-            const dailyStats = await prisma.dailyActiveTime.findUnique({
-                where: { date: todayDateStr }
+            const historyToday = await prisma.playerHistory.findMany({
+                where: {
+                    OR: [
+                        { joinedAt: { gte: todayStart } },
+                        { leftAt: null } // Still playing
+                    ]
+                }
             });
-            if (dailyStats) {
-                uptimeSeconds = dailyStats.seconds;
-            }
+
+            historyToday.forEach((session: any) => {
+                const joined = new Date(session.joinedAt).getTime();
+                const left = session.leftAt ? new Date(session.leftAt).getTime() : Date.now();
+                
+                // Constrain to today
+                const start = Math.max(joined, todayStart.getTime());
+                const end = Math.min(left, Date.now());
+                
+                if (end > start) {
+                    uptimeSeconds += Math.floor((end - start) / 1000);
+                }
+            });
         } catch(e) {
             console.error("Failed to fetch daily active time:", e);
         }
