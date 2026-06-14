@@ -1,10 +1,16 @@
 CC = gcc
 SRC_DIR = ./src/
 CFLAGS = -fpack-struct -I. -I$(SRC_DIR)
+LIBS = -lsqlite3 -lpthread
+
+OS := $(shell uname -s)
+ifeq ($(OS),Darwin)
+    CFLAGS += -I/opt/homebrew/opt/sqlite/include -I/usr/local/opt/sqlite/include
+    LIBS += -L/opt/homebrew/opt/sqlite/lib -L/usr/local/opt/sqlite/lib
+endif
+
 OBJ = main.o user.o status.o http_server.o
 TARGET = AdhocServer
-
-LIBS = -lsqlite3 -lpthread
 
 .PHONY: all clean setup install uninstall
 
