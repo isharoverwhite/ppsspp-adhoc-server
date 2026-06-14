@@ -25,6 +25,31 @@ npx prisma db push
 npm run build
 cd ..
 
+echo "📝 Updating start-all.sh script..."
+# Capture actual paths
+NODE_PATH=$(dirname $(command -v node))
+NPM_PATH=$(dirname $(command -v npm))
+
+cat << EOF > start-all.sh
+#!/bin/bash
+export PATH="\$PATH:$NODE_PATH:$NPM_PATH"
+
+cd "\$(dirname "\$0")"
+
+echo "Starting C Server on port 27312..."
+./AdhocServer &
+SERVER_PID=\$!
+
+echo "Starting Next.js WebApp on port 3000..."
+cd webapp
+npm start > nextjs.log 2>&1 &
+WEBAPP_PID=\$!
+
+trap "kill \$SERVER_PID \$WEBAPP_PID" EXIT
+wait
+EOF
+chmod +x start-all.sh
+
 echo "🔄 Restarting services..."
 if [ -d /etc/systemd/system ] && systemctl list-unit-files | grep -q ppsspp-adhoc.service; then
     sudo systemctl restart ppsspp-adhoc

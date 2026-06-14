@@ -82,20 +82,26 @@ cd ..
 
 # 5. Create a combined launcher script
 echo "📝 Creating start-all.sh script..."
-cat << 'EOF' > start-all.sh
+# Capture actual paths
+NODE_PATH=$(dirname $(command -v node))
+NPM_PATH=$(dirname $(command -v npm))
+
+cat << EOF > start-all.sh
 #!/bin/bash
-cd "$(dirname "$0")"
+export PATH="\$PATH:$NODE_PATH:$NPM_PATH"
+
+cd "\$(dirname "\$0")"
 
 echo "Starting C Server on port 27312..."
 ./AdhocServer &
-SERVER_PID=$!
+SERVER_PID=\$!
 
 echo "Starting Next.js WebApp on port 3000..."
 cd webapp
-npm start &
-WEBAPP_PID=$!
+npm start > nextjs.log 2>&1 &
+WEBAPP_PID=\$!
 
-trap "kill $SERVER_PID $WEBAPP_PID" EXIT
+trap "kill \$SERVER_PID \$WEBAPP_PID" EXIT
 wait
 EOF
 chmod +x start-all.sh
