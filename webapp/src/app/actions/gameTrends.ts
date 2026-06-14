@@ -24,7 +24,6 @@ export async function getMonthlyGameTrends() {
         const gameStats: Record<string, { totalSeconds: number, uniqueMacs: Set<string>, name: string }> = {};
 
         history.forEach(session => {
-            if (!session.leftAt) return; // Ignore ongoing sessions that haven't finished, or we can use `now` for ongoing
             const leftAt = session.leftAt ? new Date(session.leftAt).getTime() : Date.now();
             const joinedAt = new Date(session.joinedAt).getTime();
             const durationSeconds = Math.floor((leftAt - joinedAt) / 1000);
