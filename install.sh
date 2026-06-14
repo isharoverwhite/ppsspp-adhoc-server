@@ -71,6 +71,10 @@ make
 echo "🔨 Building Admin Dashboard (Next.js)..."
 cd webapp
 npm install --legacy-peer-deps
+
+# Provide default DATABASE_URL for Prisma during build
+echo "DATABASE_URL=\"file:../database.db\"" > .env
+
 npx prisma generate
 npm run build
 cd ..
