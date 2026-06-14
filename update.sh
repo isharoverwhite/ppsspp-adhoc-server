@@ -22,6 +22,12 @@ npm install --legacy-peer-deps
 echo "DATABASE_URL=\"file:../database.db\"" > .env
 npx prisma generate
 npx prisma db push
+
+echo "📦 Seeding game names into database..."
+if [ -f "../src/productids.sql" ]; then
+    sqlite3 ../database.db < ../src/productids.sql
+fi
+
 npm run build
 cd ..
 
