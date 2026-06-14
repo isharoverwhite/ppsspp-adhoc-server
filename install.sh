@@ -76,6 +76,7 @@ npm install --legacy-peer-deps
 echo "DATABASE_URL=\"file:../database.db\"" > .env
 
 npx prisma generate
+npx prisma db push
 npm run build
 cd ..
 
