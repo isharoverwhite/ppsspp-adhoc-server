@@ -157,9 +157,19 @@ else
     echo "⚠️ Systemd not found. You can start the server manually by running: $INSTALL_DIR/start-all.sh"
 fi
 
-# 10. Clean up temporary files
+# 10. Clean up temporary and legacy files
 echo "🧹 Cleaning up temporary build files..."
 rm -rf "$TMP_DIR"
+
+if [ -d "$OLD_DIR" ]; then
+    echo "🧹 Removing legacy installation directory ($OLD_DIR)..."
+    rm -rf "$OLD_DIR"
+fi
+
+if [ -d "/etc/adhoc-server" ]; then
+    echo "🧹 Removing legacy configuration directory (/etc/adhoc-server)..."
+    rm -rf "/etc/adhoc-server"
+fi
 
 echo "================================================="
 echo "🎉 Installation Complete!"
