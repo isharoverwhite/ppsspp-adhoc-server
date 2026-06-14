@@ -10,6 +10,7 @@ export default function ChatboxWidget({ games }: { games: any[] }) {
   const [message, setMessage] = useState('');
   const [isSending, setIsSending] = useState(false);
   const chatContainerRef = useRef<HTMLDivElement>(null);
+  const isScrolledToBottomRef = useRef(true);
 
   useEffect(() => {
     const fetchLogs = async () => {
@@ -21,11 +22,28 @@ export default function ChatboxWidget({ games }: { games: any[] }) {
     return () => clearInterval(interval);
   }, []);
 
+  // Force scroll to bottom when switching tabs
   useEffect(() => {
     if (chatContainerRef.current) {
       chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
+      isScrolledToBottomRef.current = true;
     }
-  }, [logs, activeTab]);
+  }, [activeTab]);
+
+  // Auto-scroll on new logs ONLY if already at bottom
+  useEffect(() => {
+    if (chatContainerRef.current && isScrolledToBottomRef.current) {
+      chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
+    }
+  }, [logs]);
+
+  const handleScroll = () => {
+    if (chatContainerRef.current) {
+      const { scrollTop, scrollHeight, clientHeight } = chatContainerRef.current;
+      // Consider "at bottom" if within 50px of the bottom edge
+      isScrolledToBottomRef.current = scrollHeight - scrollTop - clientHeight < 50;
+    }
+  };
 
   const filteredLogs = logs.filter(l => activeTab === 'Global' || l.game === activeTab);
 
@@ -93,7 +111,7 @@ export default function ChatboxWidget({ games }: { games: any[] }) {
       </div>
 
       {/* Chat Messages */}
-      <div ref={chatContainerRef} className="flex-1 overflow-y-auto p-5 space-y-4 custom-scrollbar bg-gradient-to-b from-surface-variant/5 to-surface-variant/20">
+      <div ref={chatContainerRef} onScroll={handleScroll} className="flex-1 overflow-y-auto p-5 space-y-4 custom-scrollbar bg-gradient-to-b from-surface-variant/5 to-surface-variant/20">
         {filteredLogs.length === 0 ? (
           <div className="h-full flex flex-col items-center justify-center text-on-surface-variant/60 font-data-md">
             <span className="material-symbols-outlined text-4xl mb-2 opacity-50">forum</span>
