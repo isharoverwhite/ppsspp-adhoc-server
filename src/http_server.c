@@ -142,15 +142,28 @@ static void * http_server_loop(void * arg)
 						const char * empty_resp = 
 							"HTTP/1.1 200 OK\r\n"
 							"Content-Type: application/xml; charset=utf-8\r\n"
+							"Access-Control-Allow-Origin: *\r\n"
 							"Content-Length: 75\r\n"
 							"Connection: close\r\n\r\n"
 							"<?xml version=\"1.0\" encoding=\"UTF-8\"?><prometheus usercount=\"0\"></prometheus>";
 						send(client_sock, empty_resp, strlen(empty_resp), 0);
 					}
 				}
+				else if(strncmp(req_buffer, "OPTIONS ", 8) == 0)
+				{
+					const char * options_resp = 
+						"HTTP/1.1 204 No Content\r\n"
+						"Access-Control-Allow-Origin: *\r\n"
+						"Access-Control-Allow-Methods: GET, OPTIONS\r\n"
+						"Access-Control-Allow-Headers: *\r\n"
+						"Connection: close\r\n\r\n";
+					send(client_sock, options_resp, strlen(options_resp), 0);
+				}
 				else
 				{
-					const char * bad_response = "HTTP/1.1 405 Method Not Allowed\r\nConnection: close\r\n\r\n";
+					const char * bad_response = "HTTP/1.1 405 Method Not Allowed\r\n"
+												"Access-Control-Allow-Origin: *\r\n"
+												"Connection: close\r\n\r\n";
 					send(client_sock, bad_response, strlen(bad_response), 0);
 				}
 			}
