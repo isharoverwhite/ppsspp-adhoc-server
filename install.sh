@@ -23,13 +23,9 @@ else
 fi
 
 # 2. Check build tools and dependencies
-echo "🔍 Checking dependencies (gcc, make, npm, sqlite3 headers)..."
+echo "🔍 Checking dependencies (gcc, make, npm, sqlite3)..."
 MISSING_DEPS=0
 
-if ! command -v make &> /dev/null || ! command -v gcc &> /dev/null; then
-    echo "❌ Error: Missing build-essential (gcc, make)."
-    MISSING_DEPS=1
-fi
 
 if ! command -v npm &> /dev/null; then
     echo "❌ Error: Missing Node.js (npm)."
@@ -79,9 +75,7 @@ npx prisma generate
 npx prisma db push
 
 echo "📦 Seeding game names into database..."
-if [ -f "../src/productids.sql" ]; then
-    sqlite3 ../database.db < ../src/productids.sql
-fi
+npx prisma db seed
 
 npm run build
 cd ..

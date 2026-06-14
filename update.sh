@@ -24,9 +24,7 @@ npx prisma generate
 npx prisma db push
 
 echo "📦 Seeding game names into database..."
-if [ -f "../src/productids.sql" ]; then
-    sqlite3 ../database.db < ../src/productids.sql
-fi
+npx prisma db seed
 
 npm run build
 cd ..
