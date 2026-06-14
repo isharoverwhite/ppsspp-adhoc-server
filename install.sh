@@ -91,7 +91,7 @@ SERVER_PID=$!
 
 echo "Starting Next.js WebApp on port 3000..."
 cd webapp
-npm start -- -H 0.0.0.0 &
+npm start &
 WEBAPP_PID=$!
 
 trap "kill $SERVER_PID $WEBAPP_PID" EXIT
