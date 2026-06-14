@@ -22,11 +22,31 @@ else
     INSTALL_DIR="$(pwd)"
 fi
 
-# 2. Check build tools
-echo "🔍 Checking dependencies (gcc, make, npm)..."
-if ! command -v make &> /dev/null || ! command -v gcc &> /dev/null || ! command -v npm &> /dev/null; then
-    echo "❌ Error: Missing build dependencies."
-    echo "Please install build-essential/gcc, make, and Node.js/npm first."
+# 2. Check build tools and dependencies
+echo "🔍 Checking dependencies (gcc, make, npm, sqlite3 headers)..."
+MISSING_DEPS=0
+
+if ! command -v make &> /dev/null || ! command -v gcc &> /dev/null; then
+    echo "❌ Error: Missing build-essential (gcc, make)."
+    MISSING_DEPS=1
+fi
+
+if ! command -v npm &> /dev/null; then
+    echo "❌ Error: Missing Node.js (npm)."
+    MISSING_DEPS=1
+fi
+
+if ! echo "#include <sqlite3.h>" | gcc -E - > /dev/null 2>&1; then
+    echo "❌ Error: Missing SQLite3 development headers."
+    MISSING_DEPS=1
+fi
+
+if [ $MISSING_DEPS -eq 1 ]; then
+    echo ""
+    echo "Please install missing dependencies before running this script:"
+    echo "  Ubuntu/Debian : sudo apt update && sudo apt install -y build-essential libsqlite3-dev nodejs npm"
+    echo "  CentOS/RHEL   : sudo yum groupinstall 'Development Tools' && sudo yum install -y sqlite-devel nodejs npm"
+    echo "  macOS         : xcode-select --install && brew install sqlite node"
     exit 1
 fi
 
