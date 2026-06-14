@@ -1,0 +1,18 @@
+version: '3.8'
+
+services:
+  ppsspp-adhoc:
+    build: .
+    image: ppsspp-adhoc:latest
+    container_name: ppsspp-adhoc
+    ports:
+      - "27312:27312"
+      - "3000:3000"
+    environment:
+      - ADHOC_PORT=27312
+      - ADHOC_MAX_USERS=1024
+      - ADHOC_TIMEOUT=15
+      - DATABASE_URL=file:../../database.db
+    volumes:
+      - ./database.db:/app/database.db
+    restart: unless-stopped

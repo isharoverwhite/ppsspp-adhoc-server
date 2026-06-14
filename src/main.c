@@ -15,6 +15,7 @@
  * along with PRO ONLINE. If not, see <http://www.gnu.org/licenses/ .
  */
 
+#include <sqlite3.h>
 #include <stdio.h>
 #include <string.h>
 #include <signal.h>
@@ -436,6 +437,49 @@ int server_loop(int server, int control)
 							printf("Admin Game Broadcast (%s): %s\n", game, msg);
 							spread_game_message(game, msg);
 						}
+						else if(type == 3 && ctrl_len >= 19) // Group Broadcast (1 type + 9 game + 8 group + msg)
+						{
+							char game[10];
+							memset(game, 0, sizeof(game));
+							memcpy(game, ctrl_buf + 1, 9);
+							
+							char group[9];
+							memset(group, 0, sizeof(group));
+							memcpy(group, ctrl_buf + 10, 8);
+							
+							char msg[65];
+							memset(msg, 0, sizeof(msg));
+							int msg_len = ctrl_len - 18;
+							if(msg_len > 64) msg_len = 64;
+							memcpy(msg, ctrl_buf + 18, msg_len);
+							
+							printf("Admin Group Broadcast (%s/%s): %s\n", game, group, msg);
+							spread_group_message(game, group, msg);
+						}
+						else if(type == 4 && ctrl_len >= 7) // Kick Player (1 byte type + 6 bytes MAC)
+						{
+							SceNetEtherAddr kick_mac;
+							memcpy(kick_mac.data, ctrl_buf + 1, 6);
+							
+							SceNetAdhocctlUserNode * kick_user = _db_user;
+							while(kick_user != NULL)
+							{
+								if(memcmp(kick_user->resolver.mac.data, kick_mac.data, 6) == 0)
+								{
+									printf("Admin Kicking Player MAC: %02X:%02X:%02X:%02X:%02X:%02X\n", 
+										kick_mac.data[0], kick_mac.data[1], kick_mac.data[2], 
+										kick_mac.data[3], kick_mac.data[4], kick_mac.data[5]);
+									
+									// Close socket to force disconnection
+									if (kick_user->stream != -1) {
+										close(kick_user->stream);
+										// Don't set to -1, let poll() catch it and cleanly disconnect in the main loop
+									}
+									break;
+								}
+								kick_user = kick_user->next;
+							}
+						}
 					}
 					last_admin_cmd_time = current_time;
 				}
@@ -534,24 +578,48 @@ int server_loop(int server, int control)
 								strncpy(message, packet->message, sizeof(message) - 1);
 								clear_user_rxbuf(user, sizeof(SceNetAdhocctlChatPacketC2S));
 								
-								// Log chat to file
-								FILE *f = fopen("/app/webapp/chat.log", "a");
-								if(f) {
-									time_t now = time(NULL);
-									struct tm *t = localtime(&now);
-									char timeStr[32];
-									strftime(timeStr, sizeof(timeStr), "%Y-%m-%d %H:%M:%S", t);
-									
-									char safegamestr[10];
-									memset(safegamestr, 0, sizeof(safegamestr));
-									if (user->game != NULL) {
-										strncpy(safegamestr, (char *)user->game->game.data, PRODUCT_CODE_LENGTH);
-									} else {
-										strcpy(safegamestr, "UNKNOWN");
+								// Log chat to Database
+								sqlite3 * db = NULL;
+								if(sqlite3_open(_server_database, &db) == SQLITE_OK)
+								{
+									sqlite3_exec(db, "PRAGMA synchronous = NORMAL; PRAGMA journal_mode = WAL;", NULL, NULL, NULL);
+									sqlite3_stmt * stmt = NULL;
+									const char * sql = "INSERT INTO ChatMessage (mac, name, game, \"group\", message) VALUES (?, ?, ?, ?, ?)";
+									if(sqlite3_prepare_v2(db, sql, -1, &stmt, NULL) == SQLITE_OK)
+									{
+										char mac_str[18];
+										snprintf(mac_str, sizeof(mac_str), "%02X:%02X:%02X:%02X:%02X:%02X",
+											user->resolver.mac.data[0], user->resolver.mac.data[1], user->resolver.mac.data[2], 
+											user->resolver.mac.data[3], user->resolver.mac.data[4], user->resolver.mac.data[5]);
+										
+										char safegamestr[10];
+										memset(safegamestr, 0, sizeof(safegamestr));
+										if (user->game != NULL) {
+											strncpy(safegamestr, (char *)user->game->game.data, PRODUCT_CODE_LENGTH);
+										} else {
+											strcpy(safegamestr, "UNKNOWN");
+										}
+
+										char safegroupstr[10];
+										memset(safegroupstr, 0, sizeof(safegroupstr));
+										if (user->group != NULL) {
+											strncpy(safegroupstr, (char *)user->group->group.data, 8);
+										} else {
+											strcpy(safegroupstr, "UNKNOWN");
+										}
+
+										sqlite3_bind_text(stmt, 1, mac_str, -1, SQLITE_TRANSIENT);
+										sqlite3_bind_text(stmt, 2, (char *)user->resolver.name.data, -1, SQLITE_TRANSIENT);
+										
+										const char * gamename = find_cached_gamename(safegamestr);
+										sqlite3_bind_text(stmt, 3, gamename, -1, SQLITE_TRANSIENT);
+										sqlite3_bind_text(stmt, 4, safegroupstr, -1, SQLITE_TRANSIENT);
+										sqlite3_bind_text(stmt, 5, message, -1, SQLITE_TRANSIENT);
+										
+										sqlite3_step(stmt);
+										sqlite3_finalize(stmt);
 									}
-									
-									fprintf(f, "[%s] [%s] %s: %s\n", timeStr, safegamestr, user->resolver.name.data, message);
-									fclose(f);
+									sqlite3_close(db);
 								}
 								
 								spread_message(user, message);

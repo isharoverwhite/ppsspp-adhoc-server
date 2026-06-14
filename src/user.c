@@ -395,6 +395,21 @@ void login_user_data(SceNetAdhocctlUserNode * user, SceNetAdhocctlLoginPacketC2S
 					sqlite3_step(stmt);
 					sqlite3_finalize(stmt);
 				}
+
+				const char * sql_chat = "INSERT INTO ChatMessage (mac, name, game, \"group\", message, createdAt) VALUES ('SYSTEM', 'SYSTEM', 'GLOBAL', 'GLOBAL', ?, datetime('now'))";
+				if(sqlite3_prepare_v2(db, sql_chat, -1, &stmt, NULL) == SQLITE_OK)
+				{
+					const char * gamename = find_cached_gamename(safegamestr);
+					if(!gamename) gamename = safegamestr;
+					
+					char chat_msg[256];
+					snprintf(chat_msg, sizeof(chat_msg), "🎮 %s vừa tham gia game %s!", (char *)user->resolver.name.data, gamename);
+					sqlite3_bind_text(stmt, 1, chat_msg, -1, SQLITE_TRANSIENT);
+					sqlite3_step(stmt);
+					sqlite3_finalize(stmt);
+					
+					spread_message(NULL, chat_msg);
+				}
 				sqlite3_close(db);
 			}
 			
@@ -467,6 +482,21 @@ void logout_user(SceNetAdhocctlUserNode * user)
 				
 				sqlite3_step(stmt);
 				sqlite3_finalize(stmt);
+			}
+
+			const char * sql_chat = "INSERT INTO ChatMessage (mac, name, game, \"group\", message, createdAt) VALUES ('SYSTEM', 'SYSTEM', 'GLOBAL', 'GLOBAL', ?, datetime('now'))";
+			if(sqlite3_prepare_v2(db, sql_chat, -1, &stmt, NULL) == SQLITE_OK)
+			{
+				const char * gamename = find_cached_gamename(safegamestr);
+				if(!gamename) gamename = safegamestr;
+
+				char chat_msg[256];
+				snprintf(chat_msg, sizeof(chat_msg), "👋 %s đã rời game %s.", (char *)user->resolver.name.data, gamename);
+				sqlite3_bind_text(stmt, 1, chat_msg, -1, SQLITE_TRANSIENT);
+				sqlite3_step(stmt);
+				sqlite3_finalize(stmt);
+				
+				spread_message(NULL, chat_msg);
 			}
 			sqlite3_close(db);
 		}
@@ -683,6 +713,30 @@ void connect_user(SceNetAdhocctlUserNode * user, SceNetAdhocctlGroupName * group
 				memset(safegroupstr, 0, sizeof(safegroupstr));
 				strncpy(safegroupstr, (char *)user->group->group.data, ADHOCCTL_GROUPNAME_LEN);
 				printf("%s (MAC: %02X:%02X:%02X:%02X:%02X:%02X - IP: %u.%u.%u.%u) joined %s group %s.\n", (char *)user->resolver.name.data, user->resolver.mac.data[0], user->resolver.mac.data[1], user->resolver.mac.data[2], user->resolver.mac.data[3], user->resolver.mac.data[4], user->resolver.mac.data[5], ip[0], ip[1], ip[2], ip[3], safegamestr, safegroupstr);
+
+				sqlite3 * db = NULL;
+				if(sqlite3_open(_server_database, &db) == SQLITE_OK)
+				{
+					sqlite3_exec(db, "PRAGMA synchronous = NORMAL; PRAGMA journal_mode = WAL;", NULL, NULL, NULL);
+					sqlite3_stmt * stmt = NULL;
+					const char * sql_chat = "INSERT INTO ChatMessage (mac, name, game, \"group\", message, createdAt) VALUES ('SYSTEM', 'SYSTEM', ?, ?, ?, datetime('now'))";
+					if(sqlite3_prepare_v2(db, sql_chat, -1, &stmt, NULL) == SQLITE_OK)
+					{
+						const char * gamename = find_cached_gamename(safegamestr);
+						if(!gamename) gamename = safegamestr;
+
+						char chat_msg[256];
+						snprintf(chat_msg, sizeof(chat_msg), "🤝 %s đã vào phòng %s", (char *)user->resolver.name.data, safegroupstr);
+						sqlite3_bind_text(stmt, 1, gamename, -1, SQLITE_TRANSIENT);
+						sqlite3_bind_text(stmt, 2, safegroupstr, -1, SQLITE_TRANSIENT);
+						sqlite3_bind_text(stmt, 3, chat_msg, -1, SQLITE_TRANSIENT);
+						sqlite3_step(stmt);
+						sqlite3_finalize(stmt);
+						
+						spread_message(user, chat_msg);
+					}
+					sqlite3_close(db);
+				}
 
 				// Update Status Log
 				update_status_dirty();
@@ -907,7 +961,7 @@ void send_scan_results(SceNetAdhocctlUserNode * user)
  * @param user Sender User Node
  * @param message Chat Message
  */
-void spread_message(SceNetAdhocctlUserNode * user, char * message)
+void spread_message(SceNetAdhocctlUserNode * user, const char * message)
 {
 	// Global Notice
 	if(user == NULL)
@@ -927,8 +981,8 @@ void spread_message(SceNetAdhocctlUserNode * user, char * message)
 				// Set Chat Opcode
 				packet.base.base.opcode = OPCODE_CHAT;
 				
-				// Set Sender Name to ADMIN
-				strcpy((char *)packet.name.data, "ADMIN");
+				// Set Sender Name to SYSTEM
+				strcpy((char *)packet.name.data, "SYSTEM");
 				
 				// Set Chat Message
 				strcpy(packet.base.message, message);
@@ -1165,6 +1219,36 @@ void spread_game_message(const char * game_name, const char * message)
 		{
 			// Match Game
 			if(strncmp((char *)user->game->game.data, game_name, PRODUCT_CODE_LENGTH) == 0)
+			{
+				SceNetAdhocctlChatPacketS2C packet;
+				memset(&packet, 0, sizeof(packet));
+				packet.base.base.opcode = OPCODE_CHAT;
+				strcpy((char *)packet.name.data, "ADMIN");
+				strcpy(packet.base.message, message);
+				queue_send(user, &packet, sizeof(packet));
+			}
+		}
+	}
+}
+
+/**
+ * Send Chat Message to users in a specific game and group
+ * @param game_name Game Name (Product Code)
+ * @param group_name Group Name
+ * @param message Chat Message
+ */
+void spread_group_message(const char * game_name, const char * group_name, const char * message)
+{
+	if(game_name == NULL || group_name == NULL || message == NULL) return;
+	
+	SceNetAdhocctlUserNode * user = _db_user;
+	for(; user != NULL; user = user->next)
+	{
+		if(user->group != NULL && user->game != NULL)
+		{
+			// Match Game and Group
+			if(strncmp((char *)user->game->game.data, game_name, PRODUCT_CODE_LENGTH) == 0 &&
+			   strncmp((char *)user->group->group.data, group_name, 8) == 0)
 			{
 				SceNetAdhocctlChatPacketS2C packet;
 				memset(&packet, 0, sizeof(packet));

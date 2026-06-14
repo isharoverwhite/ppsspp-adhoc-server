@@ -190,7 +190,7 @@ void send_scan_results(SceNetAdhocctlUserNode * user);
  * @param user Sender User Node
  * @param message Chat Message
  */
-void spread_message(SceNetAdhocctlUserNode * user, char * message);
+void spread_message(SceNetAdhocctlUserNode * user, const char * message);
 
 /**
  * Spread Chat Message to all players in a specific game
@@ -198,6 +198,7 @@ void spread_message(SceNetAdhocctlUserNode * user, char * message);
  * @param message Chat Message
  */
 void spread_game_message(const char * game_name, const char * message);
+void spread_group_message(const char * game_name, const char * group_name, const char * message);
 
 
 /**

@@ -1,0 +1,84 @@
+generator client {
+  provider      = "prisma-client-js"
+  binaryTargets = ["native", "linux-musl-arm64-openssl-1.1.x", "linux-musl-openssl-3.0.x", "linux-musl-arm64-openssl-3.0.x"]
+  output        = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by Prisma Client.
+model crosslinks {
+  id_from String?
+  id_to   String?
+
+  @@ignore
+}
+
+/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by Prisma Client.
+model productids {
+  id   String? @id
+  name String
+
+  @@ignore
+}
+
+model Ban {
+  id        Int      @id @default(autoincrement())
+  ip        String?
+  mac       String?
+  reason    String
+  createdAt DateTime @default(now())
+}
+
+model PlayerHistory {
+  id        Int       @id @default(autoincrement())
+  mac       String
+  ip        String
+  name      String
+  game      String
+  joinedAt  DateTime  @default(now())
+  leftAt    DateTime?
+}
+
+model PerformanceSnapshot {
+  id            Int      @id @default(autoincrement())
+  timestamp     DateTime @default(now())
+  cpuUsage      Float
+  ramUsage      Float
+  playerCount   Int
+  activeGames   Int
+  triggerReason String
+  details       String?
+}
+
+model DailyActiveTime {
+  date    String @id
+  seconds Int    @default(0)
+}
+
+model Setting {
+  key   String @id
+  value String
+}
+
+model IPLocation {
+  ip        String   @id
+  country   String?
+  city      String?
+  lat       Float?
+  lon       Float?
+  updatedAt DateTime @default(now())
+}
+
+model ChatMessage {
+  id        Int      @id @default(autoincrement())
+  mac       String
+  name      String
+  game      String
+  group     String
+  message   String
+  createdAt DateTime @default(now())
+}

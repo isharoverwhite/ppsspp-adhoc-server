@@ -1,0 +1,10 @@
+*.o
+AdhocServer
+.git
+.gitignore
+webapp/node_modules
+webapp/.next
+database.db
+database.db-journal
+database.db-wal
+database.db-shm

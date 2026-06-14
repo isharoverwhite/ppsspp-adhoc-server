@@ -380,17 +380,30 @@ class AdhocClient:
         return packets
     
     def is_connected(self):
-        """Check if the TCP connection is still alive."""
+        """Check if the TCP connection is still alive.
+
+        Drains all pending data into buffer, then checks for EOF.
+        This handles the case where server sends data then closes:
+        first recv() gets data, second recv() gets EOF (len=0).
+        All data is saved in self.buffer for later receive_packets().
+        """
         if not self.sock:
             return False
         try:
-            # Peek to detect closed connection
             self.sock.settimeout(0)
-            data = self.sock.recv(1, socket.MSG_PEEK)
+            # Drain all available data
+            while True:
+                data = self.sock.recv(4096)
+                if len(data) == 0:
+                    self.sock.setblocking(False)
+                    return False  # EOF reached
+                self.buffer += data
+        except BlockingIOError:
             self.sock.setblocking(False)
-            return len(data) > 0 or True  # No error = connected (even if no data)
+            return True   # No more data but socket still open
         except (ConnectionResetError, BrokenPipeError, OSError):
-            return False
+            self.sock.setblocking(False)
+            return False  # Connection broken
     
     def __enter__(self):
         self.connect()

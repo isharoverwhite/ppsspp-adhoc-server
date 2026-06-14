@@ -1,0 +1,17 @@
+[Unit]
+Description=PPSSPP Adhoc Server
+After=network.target
+
+[Service]
+Type=simple
+EnvironmentFile=-/etc/adhoc-server/adhoc.env
+ExecStart=/usr/local/bin/AdhocServer
+Restart=always
+RestartSec=5
+# Security / Capabilities
+CapabilityBoundingSet=CAP_NET_BIND_SERVICE
+AmbientCapabilities=CAP_NET_BIND_SERVICE
+NoNewPrivileges=true
+
+[Install]
+WantedBy=multi-user.target

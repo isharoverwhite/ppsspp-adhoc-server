@@ -1,0 +1,18 @@
+[Unit]
+Description=PPSSPP Adhoc Webapp
+After=network.target adhoc-server.service
+Requires=adhoc-server.service
+
+[Service]
+Type=simple
+EnvironmentFile=-/etc/adhoc-server/adhoc.env
+# Assuming the user installs it by cloning to some path. 
+# We will replace /opt/adhoc-server dynamically in Makefile or just assume it.
+# Let's use a standard path: /opt/adhoc-server
+WorkingDirectory=/opt/adhoc-server/webapp
+ExecStart=/bin/bash start-webapp.sh
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

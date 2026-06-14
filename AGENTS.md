@@ -1,6 +1,6 @@
-# CLAUDE.md
+# AGENTS.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+This file provides guidance to Codex (Codex.ai/code) when working with code in this repository.
 
 ## Build & Run (Docker)
 
@@ -88,40 +88,30 @@ LOGGED_IN → CONNECT → trong group → DISCONNECT → ngoài group
 
 ### P0 — Bắt buộc (có thể kill server hoặc làm lobby lệch)
 
-**P0.1: SIGPIPE giết server + `send()` không check return**
+**[DONE] P0.1: SIGPIPE giết server + `send()` không check return**
 - Code gọi `send()` không kiểm tra → client RST/Wi-Fi rớt → `SIGPIPE` kill process
 - **Sửa:** `signal(SIGPIPE, SIG_IGN)` + `send_all()` loop với `MSG_NOSIGNAL`
-- **Nơi sửa:** `src/main.c` (signal), `src/user.c` (tất cả send→send_all)
-- **Thời gian:** 1 giờ
 
-**P0.2: Partial send làm packet bị cắt**
+**[DONE] P0.2: Partial send làm packet bị cắt**
 - Socket nonblocking, `send()` gửi 139 byte nhưng chỉ gửi được 60 → client nhận packet hỏng
 - Với 100 users, chuyện xảy ra thường xuyên khi mạng chậm
 - **Sửa:** Per-user TX buffer, `queue_send()` append khi EAGAIN, flush lại khi `POLLOUT`
-- **Nơi sửa:** `src/user.h` (thêm tx[4096], tx_head, tx_len), `src/user.c` (queue_send), `src/main.c` (flush TX)
-- **Thời gian:** 3 giờ
 
 ### P1 — Scale mượt 100 users
 
-**P1.3: `poll()` thay `usleep(1000)` busy-loop**
+**[DONE] P1.3: `poll()` thay `usleep(1000)` busy-loop**
 - Hiện tại: 100 users × 1000 vòng/s = **100,000 recv()/s**, hầu hết trả EAGAIN
 - `poll()`: kernel báo socket nào có dữ liệu thật, CPU ~0% idle
-- **Nơi sửa:** `src/main.c` server_loop
-- **Thời gian:** 4 giờ
 
-**P1.4: Fix include cho portable**
+**[DONE] P1.4: Fix include cho portable**
 - Thiếu `<unistd.h>` → build fail trên macOS (dev)
-- **Thời gian:** 30 phút
 
-**P1.5: Config qua env**
-- `ADHOC_PORT`, `ADHOC_MAX_USERS`, `ADHOC_TIMEOUT`, `ADHOC_DB_PATH`
-- **Sửa:** `src/config.h` (extern), `src/config.c` (load_config), `src/Makefile` (+config.o)
-- **Thời gian:** 2 giờ
+**[DONE] P1.5: Config qua env**
+- `ADHOC_PORT`, `ADHOC_MAX_USERS`, `ADHOC_TIMEOUT`, `ADHOC_DB_PATH`, `ADHOC_MAX_USERS_PER_IP`
 
-**P1.6: Validate database lúc start**
+**[DONE] P1.6: Validate database lúc start**
 - DB thiếu/sai path → crosslink sai mà không ai biết
 - Auto-tạo bảng `productids`/`crosslinks` nếu thiếu
-- **Thời gian:** 1 giờ
 
 ### P2 — Tối ưu thêm
 
