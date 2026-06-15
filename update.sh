@@ -2,29 +2,47 @@
 set -e
 
 echo "================================================="
-echo "   PPSSPP Ad-hoc Server (Golang) Updater         "
+echo "   PPSSPP Ad-hoc Server (Go Native) Updater      "
 echo "================================================="
 
 INSTALL_DIR="/opt/ppsspp-adhoc-server"
 
-# Auto-detect if running from within the repo
-if [ -f "./docker-compose.yaml" ]; then
-    INSTALL_DIR="$(pwd)"
+# Ensure script is run with sudo
+if [ "$EUID" -ne 0 ]; then
+    echo "⚠️  WARNING: This script requires root privileges."
+    echo "Please run: sudo bash \$0"
+    exit 1
 fi
 
 cd "$INSTALL_DIR"
 
-echo "📥 Pulling latest changes from GitHub..."
-git pull origin master
+# Check if it's a git repo (Native Install usually clones it)
+if [ -d "webapp/.git" ] || [ -d ".git" ]; then
+    echo "📥 Pulling latest changes from GitHub..."
+    git pull origin master
+fi
 
-echo "🔨 Rebuilding Docker images..."
-docker compose build --pull
+# Rebuild Backend
+echo "🔨 Rebuilding Go Server..."
+cd src
+go mod tidy
+go build -ldflags="-w -s" -o ppsspp-adhoc-go .
+cp ppsspp-adhoc-go "$INSTALL_DIR/AdhocServer"
+cd ..
 
-echo "🧹 Cleaning up old Docker images..."
-docker image prune -f
+# Rebuild Dashboard
+echo "🔨 Rebuilding Admin Dashboard (Next.js)..."
+cd webapp
+npm install --legacy-peer-deps
+npx prisma generate
+npm run build
+cd ..
+
+# Restart Service
+echo "🚀 Restarting Systemd service..."
+systemctl restart ppsspp-adhoc
 
 echo "================================================="
 echo "🎉 Update and Rebuild Complete!"
-echo "💡 To apply changes, manually restart your containers:"
-echo "   cd $INSTALL_DIR && docker compose up -d"
+echo "🔄 Server and Dashboard have been restarted."
 echo "================================================="

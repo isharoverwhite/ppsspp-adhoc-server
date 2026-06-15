@@ -1,32 +1,31 @@
+# Build Next.js
 FROM node:20-alpine AS webapp-build
 WORKDIR /app/webapp
 COPY webapp/package*.json ./
-RUN npm ci --legacy-peer-deps
+RUN npm ci --legacy-peer-deps || npm ci
 COPY webapp/ ./
-RUN npx prisma generate
+RUN npx prisma generate || true
 RUN npm run build
 
-FROM alpine:3.18 AS server-build
-# Install build dependencies
-RUN apk add --no-cache gcc make musl-dev sqlite-dev
+# Build Go Server
+FROM golang:1.21-alpine AS server-build
+RUN apk add --no-cache gcc musl-dev sqlite-dev
+WORKDIR /app/src
+COPY src/go.mod src/go.sum* ./
+RUN go mod download || true
+COPY src/ ./
+RUN go mod tidy
+RUN CGO_ENABLED=1 GOOS=linux go build -ldflags="-w -s" -o ppsspp-adhoc-go .
+
+# Final Runtime
+FROM alpine:3.18
+RUN apk add --no-cache sqlite-libs tzdata nodejs npm
 WORKDIR /app
-COPY . .
-RUN make
 
-FROM node:20-alpine
-# Install runtime dependencies
-RUN apk add --no-cache \
-    sqlite-libs \
-    tzdata \
-    openssl
-
-WORKDIR /app
-
-# Copy binary
-COPY --from=server-build /app/AdhocServer /app/AdhocServer
+# Copy Go binary
+COPY --from=server-build /app/go-server/ppsspp-adhoc-go /app/AdhocServer
 
 # Copy Next.js standalone build
-# Next.js standalone output helps reduce image size
 COPY --from=webapp-build /app/webapp/public /app/webapp/public
 COPY --from=webapp-build /app/webapp/.next/standalone /app/webapp/
 COPY --from=webapp-build /app/webapp/.next/static /app/webapp/.next/static
@@ -34,11 +33,9 @@ COPY --from=webapp-build /app/webapp/.next/static /app/webapp/.next/static
 # Ensure www directory exists for status.xml
 RUN mkdir -p /app/www
 
-RUN cd /app/webapp && npm install fast-xml-parser prisma @prisma/client --legacy-peer-deps
-
 # Script to run both
 RUN echo '#!/bin/sh' > /app/start.sh && \
-    echo '/app/AdhocServer &' >> /app/start.sh && \
+    echo 'ADHOC_STATUS_PATH=/app/www/status.xml /app/AdhocServer &' >> /app/start.sh && \
     echo 'cd /app/webapp && node server.js' >> /app/start.sh && \
     chmod +x /app/start.sh
 

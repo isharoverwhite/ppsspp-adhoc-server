@@ -2,8 +2,7 @@
 set -e
 
 echo "================================================="
-echo "   PPSSPP Ad-hoc Server (Golang) Installer       "
-echo "   Powered by Docker Monolith Architecture       "
+echo "   PPSSPP Ad-hoc Server (Go Native) Installer    "
 echo "================================================="
 
 # Variables
@@ -18,16 +17,22 @@ if [ "$EUID" -ne 0 ]; then
     exit 1
 fi
 
-# 1. Check for Docker
-echo "🔍 Checking dependencies (Docker, Docker Compose)..."
-if ! command -v docker &> /dev/null; then
-    echo "❌ Error: Docker is not installed. Please install Docker first."
-    exit 1
-fi
+# 1. Check/Install Dependencies
+echo "🔍 Checking dependencies (Go, Node.js, NPM, SQLite3)..."
+MISSING_DEPS=0
 
-if ! docker compose version &> /dev/null; then
-    echo "❌ Error: Docker Compose V2 is required. Please update Docker."
-    exit 1
+if ! command -v go &> /dev/null; then MISSING_DEPS=1; fi
+if ! command -v npm &> /dev/null; then MISSING_DEPS=1; fi
+
+if [ $MISSING_DEPS -eq 1 ]; then
+    echo "📦 Attempting to automatically install missing dependencies..."
+    if command -v apt-get &> /dev/null; then
+        apt-get update
+        apt-get install -y golang-go nodejs npm libsqlite3-dev build-essential git
+    else
+        echo "❌ Error: Could not detect 'apt-get'. Please install Go and Node.js manually."
+        exit 1
+    fi
 fi
 
 # 2. Clone repository to /tmp
@@ -39,12 +44,13 @@ cd "$TMP_DIR"
 # 3. Create install directory
 echo "📂 Setting up installation directory at $INSTALL_DIR..."
 mkdir -p "$INSTALL_DIR/data"
+mkdir -p "$INSTALL_DIR/www"
 
 # 4. Database Migration (Preserve old data)
 echo "📦 Checking for existing database to migrate..."
 OLD_DB_LOCATIONS=(
     "$INSTALL_DIR/database.db"
-    "$INSTALL_DIR/webapp/prisma/database.db"
+    "$INSTALL_DIR/data/database.db"
     "/root/ppsspp-adhoc-server/database.db"
     "./database.db"
 )
@@ -60,48 +66,69 @@ for loc in "${OLD_DB_LOCATIONS[@]}"; do
 done
 
 if [ $MIGRATED -eq 0 ] && [ ! -f "$INSTALL_DIR/data/database.db" ]; then
-    echo "ℹ️  No existing database found. A new one will be created."
     touch "$INSTALL_DIR/data/database.db"
 fi
 
-# 5. Clean up legacy Systemd services
-echo "🧹 Cleaning up legacy C/Node.js services..."
-systemctl stop ppsspp-adhoc 2>/dev/null || true
-systemctl disable ppsspp-adhoc 2>/dev/null || true
-rm -f /etc/systemd/system/ppsspp-adhoc.service
+# 5. Build Go Backend (Natively)
+echo "🔨 Building Go Server..."
+cd src
+go mod tidy
+go build -ldflags="-w -s" -o ppsspp-adhoc-go .
+cp ppsspp-adhoc-go "$INSTALL_DIR/AdhocServer"
+cd ..
 
-# 6. Copy files to /opt
-echo "🚚 Installing files to $INSTALL_DIR..."
-cp docker-compose.yaml "$INSTALL_DIR/"
-cp Dockerfile "$INSTALL_DIR/"
-cp update.sh "$INSTALL_DIR/"
-cp -r go-server "$INSTALL_DIR/"
-cp -r webapp "$INSTALL_DIR/"
-cp -r src "$INSTALL_DIR/"
-cp setup.sh "$INSTALL_DIR/"
-chmod +x "$INSTALL_DIR/setup.sh"
-chmod +x "$INSTALL_DIR/update.sh"
+# 6. Build Next.js Dashboard (Natively)
+echo "🔨 Building Admin Dashboard (Next.js)..."
+cd webapp
+npm install --legacy-peer-deps
+# Provide relative DATABASE_URL for Prisma during build
+echo "DATABASE_URL=\"file:../data/database.db\"" > .env
+npx prisma generate
+npx prisma db push
+npm run build
+
+# Copy webapp (Next.js standalone style is hard for native bash, so we copy all or use pm2/systemd)
+# For simplicity in native install, we copy the whole folder
+rm -rf "$INSTALL_DIR/webapp"
+mkdir -p "$INSTALL_DIR/webapp"
+cp -r . "$INSTALL_DIR/webapp/"
+cd ..
 
 # 7. Install Global CLI
 echo "🛠️ Installing global 'ppsspp' CLI tool..."
-cp "$INSTALL_DIR/src/cli.sh" /usr/local/bin/ppsspp
+cp "$TMP_DIR/src/cli.sh" /usr/local/bin/ppsspp
 chmod +x /usr/local/bin/ppsspp
 
-# 8. Run Setup (Optional prompts)
-cd "$INSTALL_DIR"
-./setup.sh
+# 8. Set up Systemd Service
+echo "⚙️ Configuring Systemd service..."
+cat << EOF > /etc/systemd/system/ppsspp-adhoc.service
+[Unit]
+Description=PPSSPP Ad-hoc Server & Dashboard
+After=network.target
 
-# 9. Build Docker Image
-echo "🚀 Building server image (this may take a few minutes)..."
-docker compose build --pull
+[Service]
+Type=simple
+User=root
+WorkingDirectory=$INSTALL_DIR
+Environment=DATABASE_PATH=$INSTALL_DIR/data/database.db
+Environment=ADHOC_STATUS_PATH=$INSTALL_DIR/www/status.xml
+ExecStartPre=/bin/mkdir -p $INSTALL_DIR/www
+ExecStart=/bin/bash -c "cd $INSTALL_DIR && ./AdhocServer & cd $INSTALL_DIR/webapp && npm start"
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
+systemctl daemon-reload
+systemctl enable ppsspp-adhoc
+systemctl restart ppsspp-adhoc
 
 echo "================================================="
-echo "🎉 Installation Complete!"
-echo "📂 Files installed at : $INSTALL_DIR"
-echo "📦 Docker image built : ppsspp-adhoc:latest"
-echo "💡 To start the server, run:"
-echo "   cd $INSTALL_DIR && docker compose up -d"
-echo ""
-echo "🛠️ You can also use the 'ppsspp' command for updates:"
-echo "   - ppsspp update"
+echo "🎉 Native Installation Complete!"
+echo "🎮 Ad-hoc Server Port : 27312"
+echo "📊 Admin Dashboard    : http://localhost:3000"
+echo "💡 You can manage the service using 'ppsspp' or 'systemctl':"
+echo "   - ppsspp status"
+echo "   - ppsspp restart"
 echo "================================================="
