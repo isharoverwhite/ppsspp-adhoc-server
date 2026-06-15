@@ -76,6 +76,14 @@ echo "🔨 Building Go Server..."
 cd "$TMP_DIR/src"
 go mod tidy
 go build -ldflags="-w -s" -o ppsspp-adhoc-go .
+
+# STOP existing server before copying binary to avoid "Text file busy"
+echo "🛑 Stopping existing server processes..."
+systemctl stop ppsspp-adhoc 2>/dev/null || true
+pkill -f "AdhocServer" || true
+pkill -f "ppsspp-adhoc-go" || true
+sleep 1
+
 cp ppsspp-adhoc-go "$INSTALL_DIR/AdhocServer"
 
 # 6. Build Next.js Dashboard
