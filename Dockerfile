@@ -23,7 +23,7 @@ RUN apk add --no-cache sqlite-libs tzdata nodejs npm
 WORKDIR /app
 
 # Copy Go binary
-COPY --from=server-build /app/go-server/ppsspp-adhoc-go /app/AdhocServer
+COPY --from=server-build /app/src/ppsspp-adhoc-go /app/AdhocServer
 
 # Copy Next.js standalone build
 COPY --from=webapp-build /app/webapp/public /app/webapp/public

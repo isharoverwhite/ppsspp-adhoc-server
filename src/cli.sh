@@ -54,6 +54,7 @@ case "$COMMAND" in
         if [ -f "$INSTALL_DIR/update.sh" ]; then
             sudo bash "$INSTALL_DIR/update.sh"
         else
+            # Fallback to direct curl if update.sh is somehow missing
             curl -fsSL https://raw.githubusercontent.com/isharoverwhite/ppsspp-adhoc-server/master/install.sh | sudo bash
         fi
         ;;

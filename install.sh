@@ -13,7 +13,7 @@ REPO_URL="https://github.com/isharoverwhite/ppsspp-adhoc-server.git"
 # Ensure script is run with sudo
 if [ "$EUID" -ne 0 ]; then
     echo "⚠️  WARNING: This script requires root privileges."
-    echo "Please run: sudo bash \$0"
+    echo "Please run: sudo bash $0"
     exit 1
 fi
 
@@ -23,6 +23,7 @@ MISSING_DEPS=0
 
 if ! command -v go &> /dev/null; then MISSING_DEPS=1; fi
 if ! command -v npm &> /dev/null; then MISSING_DEPS=1; fi
+if ! command -v git &> /dev/null; then MISSING_DEPS=1; fi
 
 if [ $MISSING_DEPS -eq 1 ]; then
     echo "📦 Attempting to automatically install missing dependencies..."
@@ -30,7 +31,7 @@ if [ $MISSING_DEPS -eq 1 ]; then
         apt-get update
         apt-get install -y golang-go nodejs npm libsqlite3-dev build-essential git
     else
-        echo "❌ Error: Could not detect 'apt-get'. Please install Go and Node.js manually."
+        echo "❌ Error: Could not detect 'apt-get'. Please install Go, Node.js, and Git manually."
         exit 1
     fi
 fi
@@ -52,6 +53,7 @@ OLD_DB_LOCATIONS=(
     "$INSTALL_DIR/database.db"
     "$INSTALL_DIR/data/database.db"
     "/root/ppsspp-adhoc-server/database.db"
+    "/root/ppsspp-adhoc-server/data/database.db"
     "./database.db"
 )
 
@@ -69,35 +71,35 @@ if [ $MIGRATED -eq 0 ] && [ ! -f "$INSTALL_DIR/data/database.db" ]; then
     touch "$INSTALL_DIR/data/database.db"
 fi
 
-# 5. Build Go Backend (Natively)
+# 5. Build Go Backend
 echo "🔨 Building Go Server..."
-cd src
+cd "$TMP_DIR/src"
 go mod tidy
 go build -ldflags="-w -s" -o ppsspp-adhoc-go .
 cp ppsspp-adhoc-go "$INSTALL_DIR/AdhocServer"
-cd ..
 
-# 6. Build Next.js Dashboard (Natively)
+# 6. Build Next.js Dashboard
 echo "🔨 Building Admin Dashboard (Next.js)..."
-cd webapp
+cd "$TMP_DIR/webapp"
 npm install --legacy-peer-deps
-# Provide relative DATABASE_URL for Prisma during build
-echo "DATABASE_URL=\"file:../data/database.db\"" > .env
+# Use absolute path for Prisma to ensure it hits the migrated DB
+echo "DATABASE_URL=\"file:$INSTALL_DIR/data/database.db\"" > .env
 npx prisma generate
 npx prisma db push
 npm run build
 
-# Copy webapp (Next.js standalone style is hard for native bash, so we copy all or use pm2/systemd)
-# For simplicity in native install, we copy the whole folder
+# Copy webapp to /opt (including .next and node_modules for 'npm start')
+echo "🚚 Installing dashboard files..."
 rm -rf "$INSTALL_DIR/webapp"
 mkdir -p "$INSTALL_DIR/webapp"
-cp -r . "$INSTALL_DIR/webapp/"
-cd ..
+cp -a . "$INSTALL_DIR/webapp/"
 
-# 7. Install Global CLI
+# 7. Install Global CLI and Update Script
 echo "🛠️ Installing global 'ppsspp' CLI tool..."
 cp "$TMP_DIR/src/cli.sh" /usr/local/bin/ppsspp
 chmod +x /usr/local/bin/ppsspp
+cp "$TMP_DIR/update.sh" "$INSTALL_DIR/update.sh"
+chmod +x "$INSTALL_DIR/update.sh"
 
 # 8. Set up Systemd Service
 echo "⚙️ Configuring Systemd service..."
@@ -112,8 +114,8 @@ User=root
 WorkingDirectory=$INSTALL_DIR
 Environment=DATABASE_PATH=$INSTALL_DIR/data/database.db
 Environment=ADHOC_STATUS_PATH=$INSTALL_DIR/www/status.xml
-ExecStartPre=/bin/mkdir -p $INSTALL_DIR/www
-ExecStart=/bin/bash -c "cd $INSTALL_DIR && ./AdhocServer & cd $INSTALL_DIR/webapp && npm start"
+# Run Go server in background and Next.js in foreground
+ExecStart=/bin/bash -c "./AdhocServer & cd webapp && npm start"
 Restart=on-failure
 
 [Install]
@@ -128,7 +130,9 @@ echo "================================================="
 echo "🎉 Native Installation Complete!"
 echo "🎮 Ad-hoc Server Port : 27312"
 echo "📊 Admin Dashboard    : http://localhost:3000"
-echo "💡 You can manage the service using 'ppsspp' or 'systemctl':"
+echo "💡 You can manage the service using 'ppsspp':"
 echo "   - ppsspp status"
 echo "   - ppsspp restart"
+echo "   - ppsspp logs"
+echo "   - ppsspp update"
 echo "================================================="

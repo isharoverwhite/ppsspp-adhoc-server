@@ -22,6 +22,7 @@ type Database struct {
 }
 
 func InitDB(dbPath string) (*Database, error) {
+	fmt.Printf("DB: Opening database at %s\n", dbPath)
 	conn, err := sql.Open("sqlite3", dbPath)
 	if err != nil {
 		return nil, fmt.Errorf("failed to open database: %v", err)

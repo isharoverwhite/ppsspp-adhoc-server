@@ -2,8 +2,7 @@ version: '3.8'
 
 services:
   ppsspp-adhoc:
-    build: .
-    image: ppsspp-adhoc:latest
+    image: ghcr.io/isharoverwhite/ppsspp-adhoc-server:latest
     container_name: ppsspp-adhoc
     ports:
       - "27312:27312"
