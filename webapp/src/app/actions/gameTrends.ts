@@ -10,15 +10,19 @@ import { XMLParser } from 'fast-xml-parser';
 export async function getMonthlyGameTrends() {
     try {
         const now = new Date();
-        const firstDayOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+        const last30Days = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
 
         const history = await prisma.playerHistory.findMany({
             where: {
                 joinedAt: {
-                    gte: firstDayOfMonth
+                    gte: last30Days
                 }
             }
         });
+
+        if (!history || history.length === 0) {
+            return { success: true, trends: [] };
+        }
 
         // Group by game
         const gameStats: Record<string, { totalSeconds: number, uniqueMacs: Set<string>, name: string }> = {};
@@ -28,10 +32,10 @@ export async function getMonthlyGameTrends() {
             const joinedAt = new Date(session.joinedAt).getTime();
             const durationSeconds = Math.floor((leftAt - joinedAt) / 1000);
 
-            // Ignore negative or unreasonable durations
-            if (durationSeconds < 0 || durationSeconds > 86400 * 30) return;
+            // Ignore glitches, cap at 12 hours
+            const safeDuration = Math.max(0, Math.min(durationSeconds, 12 * 3600));
 
-            const gameId = session.game; // This is actually the game name or ID stored in DB. Wait, the C server stores `safegamestr` which is the game ID. But wait! The C server uses `safegamestr` which could be ID, but it also has `find_cached_gamename`. Let's see what is saved in DB. It saves `safegamestr` (the product ID).
+            const gameId = session.game;
 
             if (!gameStats[gameId]) {
                 gameStats[gameId] = {
@@ -41,19 +45,18 @@ export async function getMonthlyGameTrends() {
                 };
             }
 
-            gameStats[gameId].totalSeconds += durationSeconds;
+            gameStats[gameId].totalSeconds += safeDuration;
             gameStats[gameId].uniqueMacs.add(session.mac);
         });
 
-        // Fetch product names for mapping using raw query since it's @@ignore
+        // Fetch product names for mapping
         const productIds = await prisma.$queryRaw<Array<{id: string, name: string}>>`SELECT id, name FROM productids`;
         const productMap = new Map(productIds.map(p => [p.id, p.name]));
 
         const trends = Object.values(gameStats).map(stat => {
             const usercount = stat.uniqueMacs.size;
-            // Simple trend score: Total Playtime * (log10(Unique Users + 1))
-            // This favors games that are played longer by more people.
-            const score = stat.totalSeconds * Math.max(1, Math.log10(usercount + 1));
+            // score based on time
+            const score = stat.totalSeconds;
             const realName = productMap.get(stat.name) || stat.name;
 
             return {
@@ -65,7 +68,7 @@ export async function getMonthlyGameTrends() {
             };
         });
 
-        // Sort by highest score
+        // Sort by highest score (time)
         trends.sort((a, b) => b.score - a.score);
 
         return { success: true, trends: trends.slice(0, 5) };

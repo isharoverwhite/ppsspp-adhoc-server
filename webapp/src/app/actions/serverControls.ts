@@ -31,11 +31,11 @@ export async function sendGlobalBroadcast(message: string) {
                 } else {
                     prisma.chatMessage.create({
                         data: {
-                            mac: 'SYSTEM',
+                            mac: 'ADMIN',
                             name: 'ADMIN',
                             game: 'GLOBAL',
                             group: 'GLOBAL',
-                            message: message
+                            message: `ADMIN: ${message}`
                         }
                     }).then(() => resolve({ success: true }))
                       .catch((dbErr: any) => resolve({ success: false, error: dbErr.message }));
@@ -78,11 +78,11 @@ export async function sendGameChat(gameId: string, gameName: string, message: st
                 } else {
                     prisma.chatMessage.create({
                         data: {
-                            mac: 'SYSTEM',
+                            mac: 'ADMIN',
                             name: 'ADMIN',
                             game: gameName,
                             group: 'GLOBAL',
-                            message: message
+                            message: `ADMIN: ${message}`
                         }
                     }).then(() => resolve({ success: true }))
                       .catch((dbErr: any) => resolve({ success: false, error: dbErr.message }));

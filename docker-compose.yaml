@@ -9,10 +9,11 @@ services:
       - "27312:27312"
       - "3000:3000"
     environment:
-      - ADHOC_PORT=27312
-      - ADHOC_MAX_USERS=1024
-      - ADHOC_TIMEOUT=15
-      - DATABASE_URL=file:../../database.db
+      - ADHOC_PORT=${ADHOC_PORT:-27312}
+      - ADHOC_MAX_USERS=${ADHOC_MAX_USERS:-1024}
+      - ADHOC_TIMEOUT=${ADHOC_TIMEOUT:-15}
+      - DATABASE_PATH=/app/data/database.db
+      - DATABASE_URL=file:/app/data/database.db
     volumes:
-      - ./database.db:/app/database.db
+      - ./data:/app/data
     restart: unless-stopped

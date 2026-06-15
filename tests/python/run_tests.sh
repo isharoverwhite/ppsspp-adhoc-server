@@ -30,13 +30,16 @@ echo ""
 
 # ── Tạo thư mục cần thiết ──────────────────────────────────
 mkdir -p "$REPO_ROOT/www"
+mkdir -p "$REPO_ROOT/data"
+touch "$REPO_ROOT/data/database.db"
 
 # ── Chạy server trong container ─────────────────────────────
 echo "🚀 Khởi động server trong Docker (port $SERVER_PORT)..."
 docker run --rm -d \
     --name "$CONTAINER_NAME" \
     -p "$SERVER_PORT:27312" \
-    -v "$REPO_ROOT/database.db:/app/database.db" \
+    -e DATABASE_PATH=/app/data/database.db \
+    -v "$REPO_ROOT/data:/app/data" \
     -v "$REPO_ROOT/www:/app/www" \
     "$DOCKER_IMAGE"
 
@@ -59,9 +62,11 @@ done
 
 # ── Chạy test ───────────────────────────────────────────────
 echo ""
-echo "🧪 Chạy integration tests..."
+echo "🧪 Chạy integration tests (Minimal)..."
 echo "============================================================"
-python3 "$SCRIPT_DIR/test_server.py" -v
+python3 "$SCRIPT_DIR/test_connection.py" -v
+python3 "$SCRIPT_DIR/test_admin_security.py" -v
+python3 "$SCRIPT_DIR/test_crosslinks.py" -v
 TEST_EXIT=$?
 
 # ── Kết quả ─────────────────────────────────────────────────

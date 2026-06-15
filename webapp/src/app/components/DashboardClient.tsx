@@ -12,28 +12,40 @@ function PieChart({ games }: { games: any[] }) {
   const chartRef = useRef(null);
   
   useEffect(() => {
-    // Reset to 0 before animating
-    anime.set('.pie-segment', { strokeDasharray: '0 1000' });
-    anime.set('.pie-label, .pie-polyline', { opacity: 0 });
+    // Initial state: empty segments and hidden labels
+    anime.set('.pie-segment', { strokeDasharray: '0 1000', opacity: 0 });
+    anime.set('.pie-label, .pie-polyline', { opacity: 0, scale: 0.5 });
+    anime.set('.chart-container', { scale: 0.8, opacity: 0 });
     
-    anime({
+    const tl = anime.timeline({ easing: 'easeOutQuart' });
+
+    tl.add({ 
+      targets: '.chart-container', 
+      scale: [0.8, 1], 
+      opacity: [0, 1], 
+      duration: 800 
+    })
+    .add({
       targets: '.pie-segment',
-      strokeDasharray: function(el: any) {
+      // Animating the first value of dasharray (the dash) while keeping total (C) constant
+      // We use a proxy object to handle the string formatting correctly
+      strokeDasharray: (el: any) => {
         const val = el.getAttribute('data-value');
         const c = el.getAttribute('data-c');
-        return [val, c];
+        return [`0 ${c}`, `${val} ${c}`];
       },
-      duration: 1500,
-      easing: 'easeOutQuart',
-      delay: anime.stagger(150)
-    });
-
-    anime({
+      opacity: [0, 1],
+      duration: 1200,
+      delay: anime.stagger(100),
+      offset: '-=600'
+    })
+    .add({
       targets: '.pie-label, .pie-polyline',
       opacity: [0, 1],
-      duration: 1000,
-      easing: 'easeOutQuad',
-      delay: anime.stagger(100, { start: 1000 })
+      scale: [0.5, 1],
+      duration: 600,
+      delay: anime.stagger(50),
+      offset: '-=800'
     });
   }, [games]);
 
@@ -41,110 +53,93 @@ function PieChart({ games }: { games: any[] }) {
   const total = games.reduce((acc: number, curr: any) => acc + curr.usercount, 0);
   let cumulativeOffset = 0;
 
-  const cx = 50;
-  const cy = 50;
-  const r = 25;
-  const strokeWidth = 15;
+  // SVG space constants
+  const width = 500; 
+  const height = 300;
+  const cx = width / 2;
+  const cy = height / 2;
+  const r = 55;
+  const strokeWidth = 35;
   const C = 2 * Math.PI * r;
 
+  const labelData = games.map((g, i) => {
+    const percent = total > 0 ? (g.usercount / total) * 100 : 0;
+    const theta = (cumulativeOffset + percent / 2) / 100 * 2 * Math.PI;
+    cumulativeOffset += percent;
+    const angle = theta - Math.PI / 2;
+    const isRight = Math.cos(angle) >= 0;
+    const r_outer = r + strokeWidth / 2;
+
+    return {
+      g, i, angle, isRight,
+      tx: cx + r * Math.cos(angle),
+      ty: cy + r * Math.sin(angle),
+      px0: cx + r_outer * Math.cos(angle),
+      py0: cy + r_outer * Math.sin(angle),
+      px1: cx + (r_outer + 15) * Math.cos(angle),
+      py1: cy + (r_outer + 15) * Math.sin(angle),
+      // Enforce a minimum width of 2 units for visibility of small sessions
+      dashLength: Math.max((percent * C) / 100 - 1.5, 2),
+      offset: ((cumulativeOffset - percent) * C) / 100
+    };
+  });
+
+  // Sort ALL for global collision avoidance
+  const sortedLabels = [...labelData].sort((a, b) => a.py1 - b.py1);
+  const minGap = 22; 
+  for (let i = 1; i < sortedLabels.length; i++) {
+    if (sortedLabels[i].py1 < sortedLabels[i-1].py1 + minGap) {
+      sortedLabels[i].py1 = sortedLabels[i-1].py1 + minGap;
+    }
+  }
+
   return (
-    <div className="w-full flex items-center justify-center p-4" ref={chartRef}>
-      <svg viewBox="-40 -10 180 120" className="w-full max-w-[500px] h-auto drop-shadow-2xl overflow-visible">
-        {/* Slices group */}
+    <div className="w-full flex items-center justify-center chart-container" ref={chartRef}>
+      <svg viewBox={`0 0 ${width} ${height}`} className="w-full h-auto drop-shadow-xl overflow-visible">
+        {/* Draw slices in original order to keep offsets correct */}
         <g transform={`rotate(-90 ${cx} ${cy})`}>
-          {games.map((g, i) => {
-             const percent = total > 0 ? (g.usercount / total) * 100 : 0;
-             // Add a gap by subtracting 1.5 from dashLength
-             const dashLength = Math.max((percent * C) / 100 - 1.5, 0);
-             const offset = (cumulativeOffset * C) / 100;
-             cumulativeOffset += percent;
-             
-             return (
-               <circle
-                 key={`slice-${i}`}
-                 className="pie-segment"
-                 r={r}
-                 cx={cx}
-                 cy={cy}
-                 fill="transparent"
-                 stroke={colors[i % colors.length]}
-                 strokeWidth={strokeWidth}
-                 strokeDasharray={`0 ${C}`}
-                 strokeDashoffset={-offset}
-                 data-value={dashLength}
-                 data-c={C}
-               />
-             )
-          })}
+          {labelData.map((l) => (
+            <circle
+              key={`slice-${l.i}`}
+              className="pie-segment"
+              r={r} cx={cx} cy={cy}
+              fill="transparent"
+              stroke={colors[l.i % colors.length]}
+              strokeWidth={strokeWidth}
+              strokeDasharray={`0 ${C}`}
+              strokeDashoffset={-l.offset}
+              data-value={l.dashLength}
+              data-c={C}
+            />
+          ))}
         </g>
-        
-        {/* Labels and Lines group */}
+        {/* Draw labels using adjusted coordinates */}
         <g>
-          {(() => {
-             let tempOffset = 0;
-             return games.map((g, i) => {
-               const percent = total > 0 ? (g.usercount / total) * 100 : 0;
-               const theta = (tempOffset + percent / 2) / 100 * 2 * Math.PI;
-               tempOffset += percent;
-               
-               const angle = theta - Math.PI / 2;
-               
-               // Text inside slice
-               const tx = cx + r * Math.cos(angle);
-               const ty = cy + r * Math.sin(angle);
-               
-               // Lines
-               const r_outer = r + strokeWidth / 2;
-               const px0 = cx + r_outer * Math.cos(angle);
-               const py0 = cy + r_outer * Math.sin(angle);
-               
-               const r_mid = r_outer + 5;
-               const px1 = cx + r_mid * Math.cos(angle);
-               const py1 = cy + r_mid * Math.sin(angle);
-               
-               const isRight = Math.cos(angle) >= 0;
-               const px2 = px1 + (isRight ? 10 : -10);
-               const py2 = py1;
-               
-               const textAnchor = isRight ? "start" : "end";
-               const textX = px2 + (isRight ? 2 : -2);
-               const textY = py2 + 1.5;
-               
-               return (
-                 <g key={`label-${i}`}>
-                   <text 
-                     x={tx} 
-                     y={ty + 1.5} 
-                     textAnchor="middle" 
-                     className="pie-label opacity-0 font-data-md text-[6px] fill-[#222]"
-                   >
-                     {g.displayValue || g.usercount}
-                   </text>
-                   
-                   <polyline
-                     points={`${px0},${py0} ${px1},${py1} ${px2},${py2}`}
-                     fill="none"
-                     stroke={colors[i % colors.length]}
-                     strokeWidth="0.5"
-                     className="pie-polyline opacity-0"
-                   />
-                   
-                   <text
-                     x={textX}
-                     y={textY}
-                     textAnchor={textAnchor}
-                     className="pie-label opacity-0 font-data-md text-[5px] fill-on-surface"
-                   >
-                     {g.name}
-                   </text>
-                 </g>
-               )
-             });
-          })()}
+          {sortedLabels.map((l) => {
+            const px2 = l.isRight ? cx + 130 : cx - 130;
+            const textAnchor = l.isRight ? "start" : "end";
+            const textX = l.isRight ? px2 + 8 : px2 - 8;
+            
+            return (
+              <g key={`label-${l.i}`}>
+                <text x={l.tx} y={l.ty + 2} textAnchor="middle" className="pie-label opacity-0 font-data-md text-[9px] fill-[#222] font-bold pointer-events-none">
+                  {l.g.displayValue || l.g.usercount}
+                </text>
+                <polyline
+                  points={`${l.px0},${l.py0} ${l.px1},${l.py1} ${px2},${l.py1}`}
+                  fill="none" stroke={colors[l.i % colors.length]} strokeWidth="1.2"
+                  className="pie-polyline opacity-0"
+                />
+                <text x={textX} y={l.py1 + 3} textAnchor={textAnchor} className="pie-label opacity-0 font-data-md text-[11px] fill-on-surface font-bold">
+                  {l.g.name}
+                </text>
+              </g>
+            );
+          })}
         </g>
       </svg>
     </div>
-  )
+  );
 }
 
 export default function DashboardClient() {
@@ -165,12 +160,11 @@ export default function DashboardClient() {
     fetchStatus();
     const interval = setInterval(fetchStatus, 5000);
     
-    // Fetch trends only once on mount (monthly aggregate doesn't need 5s polling)
     getMonthlyGameTrends().then(trendsData => {
       if (trendsData.success && trendsData.trends) {
         setTrends(trendsData.trends.map((t: any) => ({
           ...t,
-          usercount: t.score, // Use score for pie slice size
+          usercount: t.score,
           displayValue: `${Math.floor(t.totalSeconds / 3600)}h${Math.floor((t.totalSeconds % 3600) / 60)}m`
         })));
       }
@@ -192,9 +186,6 @@ export default function DashboardClient() {
       </div>
     );
   }
-
-  // Calculate top games for Trends
-  const sortedGames = [...(status.games || [])].sort((a, b) => b.usercount - a.usercount);
 
   const handleKick = async (mac: string) => {
     if (confirm(`Kick player with MAC: ${mac}?`)) {
@@ -223,7 +214,6 @@ export default function DashboardClient() {
 
   return (
     <>
-      {/* Game Modal */}
       {selectedGame && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
           <div className="bg-surface-container rounded-2xl border border-outline-variant w-full max-w-4xl max-h-[90vh] flex flex-col shadow-2xl animate-fade-in">
@@ -293,7 +283,6 @@ export default function DashboardClient() {
         </div>
       )}
 
-      {/* Status Strip Section */}
       <div className="flex flex-wrap gap-stack-md mb-stack-lg bg-surface-container-low p-3 rounded-xl border border-outline-variant/50">
         <div className="flex items-center gap-stack-sm px-3">
           <span className="font-label-caps text-[10px] text-on-surface-variant uppercase tracking-widest">Rate Limiting</span>
@@ -313,63 +302,60 @@ export default function DashboardClient() {
         </div>
       </div>
 
-      {/* Dashboard Grid */}
       <div className="grid grid-cols-12 gap-stack-lg">
-        {/* Infrastructure Stats Row */}
         <div className="col-span-12 grid grid-cols-1 md:grid-cols-4 gap-stack-md">
-          {/* Online Players */}
           <div className="glass-card p-card-padding rounded-xl flex flex-col justify-between h-32 relative overflow-hidden">
             <div className="flex justify-between items-start">
-              <span className="font-label-caps text-label-caps text-on-surface-variant uppercase">Online Players</span>
-              <span className="material-symbols-outlined text-primary-fixed-dim">group</span>
+              <span className="font-label-caps text-label-caps text-on-surface-variant uppercase tracking-widest text-[9px]">Online Players</span>
+              <span className="material-symbols-outlined text-primary-fixed-dim text-lg">group</span>
             </div>
             <div className="flex items-end justify-between">
-              <div className="font-data-lg text-[32px] text-primary-fixed-dim">{status.totalUsers}</div>
-              <div className="font-label-caps text-[10px] text-on-surface-variant mb-1">Connected</div>
+              <div className="font-data-lg text-[32px] text-primary-fixed-dim leading-none">{status.totalUsers}</div>
+              <div className="font-label-caps text-[9px] text-on-surface-variant mb-1 uppercase opacity-60">Connected</div>
             </div>
           </div>
           
-          {/* Active Games */}
           <div className="glass-card p-card-padding rounded-xl flex flex-col justify-between h-32">
             <div className="flex justify-between items-start">
-              <span className="font-label-caps text-label-caps text-on-surface-variant uppercase">Active Games</span>
-              <span className="material-symbols-outlined text-secondary-fixed-dim">sports_esports</span>
+              <span className="font-label-caps text-label-caps text-on-surface-variant uppercase tracking-widest text-[9px]">Active Games</span>
+              <span className="material-symbols-outlined text-secondary-fixed-dim text-lg">sports_esports</span>
             </div>
             <div className="flex items-end justify-between">
-              <div className="font-data-lg text-[32px] text-secondary-fixed-dim">{status.activeGames}</div>
+              <div className="font-data-lg text-[32px] text-secondary-fixed-dim leading-none">{status.activeGames}</div>
+              <div className="font-label-caps text-[9px] text-on-surface-variant mb-1 uppercase opacity-60">Titles</div>
             </div>
           </div>
           
-          {/* Active Rooms */}
-          <div className="glass-card p-card-padding rounded-xl flex flex-col justify-between h-32">
+          <div className="glass-card p-card-padding rounded-xl flex flex-col justify-between h-32 bg-primary/5">
             <div className="flex justify-between items-start">
-              <span className="font-label-caps text-label-caps text-on-surface-variant uppercase">Network Rooms</span>
-              <span className="material-symbols-outlined text-secondary">hub</span>
+              <span className="font-label-caps text-[9px] text-on-surface-variant uppercase tracking-widest">Usage Today</span>
+              <span className="material-symbols-outlined text-primary text-lg">today</span>
             </div>
             <div className="flex items-end justify-between">
-              <div className="font-data-lg text-[32px] text-secondary">{status.totalGroups}</div>
-            </div>
-          </div>
-          
-          {/* Active Usage */}
-          <div className="glass-card p-card-padding rounded-xl flex flex-col justify-between h-32">
-            <div className="flex justify-between items-start">
-              <span className="font-label-caps text-[10px] text-on-surface-variant uppercase">Active Usage (Today)</span>
-              <span className="material-symbols-outlined text-primary">schedule</span>
-            </div>
-            <div className="flex items-center gap-stack-md">
-              <div className="font-data-lg text-[24px]">
-                {Math.floor((status.uptimeSeconds || 0) / 3600)}<span className="text-sm opacity-50 mr-1">h</span>
+              <div className="font-data-lg text-[28px] text-on-surface">
+                {Math.floor((status.uptimeSeconds || 0) / 3600)}<span className="text-sm opacity-50 mx-0.5">h</span>
                 {Math.floor(((status.uptimeSeconds || 0) % 3600) / 60)}<span className="text-sm opacity-50">m</span>
               </div>
+              <div className="font-label-caps text-[9px] text-on-surface-variant mb-1 uppercase opacity-60">Active</div>
+            </div>
+          </div>
+
+          <div className="glass-card p-card-padding rounded-xl flex flex-col justify-between h-32 border-primary/20">
+            <div className="flex justify-between items-start">
+              <span className="font-label-caps text-[9px] text-on-surface-variant uppercase tracking-widest">Total Playtime</span>
+              <span className="material-symbols-outlined text-secondary text-lg">history</span>
+            </div>
+            <div className="flex items-end justify-between">
+              <div className="font-data-lg text-[24px] text-secondary">
+                {((status.totalUsageSeconds || 0) / 3600).toFixed(1)}<span className="text-xs opacity-50 ml-1">Hours</span>
+              </div>
+              <div className="font-label-caps text-[9px] text-on-surface-variant mb-1 uppercase opacity-60">All Time</div>
             </div>
           </div>
         </div>
 
-        {/* Bento Layout Middle Section */}
         <div className="col-span-12 md:col-span-8 grid grid-cols-12 gap-stack-md">
-          {/* Live Sessions (Replaced Geo-location) */}
-          <div className="col-span-12 md:col-span-7 glass-card p-card-padding rounded-xl relative overflow-hidden min-h-[300px] flex flex-col">
+          <div className="col-span-12 md:col-span-6 glass-card p-card-padding rounded-xl relative overflow-hidden min-h-[400px] flex flex-col">
             <h3 className="font-headline-sm text-headline-sm text-on-surface mb-stack-sm relative z-10 flex justify-between items-center">
               Live Sessions
               <span className="font-label-caps text-[10px] bg-surface-variant px-2 py-1 rounded text-primary-fixed-dim">LIVE</span>
@@ -395,10 +381,9 @@ export default function DashboardClient() {
             </div>
           </div>
           
-          {/* Game Trends */}
-          <div className="col-span-12 md:col-span-5 glass-card p-card-padding rounded-xl">
-            <h3 className="font-headline-sm text-headline-sm text-on-surface mb-stack-lg">Game Trends (This Month)</h3>
-            <div className="space-y-stack-md">
+          <div className="col-span-12 md:col-span-6 glass-card p-card-padding rounded-xl flex flex-col items-center justify-center min-h-[400px]">
+            <h3 className="font-headline-sm text-headline-sm text-on-surface mb-stack-lg self-start w-full">Game Trends (This Month)</h3>
+            <div className="flex-1 w-full flex items-center justify-center overflow-visible">
               {trends.length === 0 ? (
                 <div className="text-on-surface-variant text-xs font-data-md">No trending games yet.</div>
               ) : (
@@ -408,11 +393,7 @@ export default function DashboardClient() {
           </div>
         </div>
 
-        {/* Sidebar Content Sections (Right) */}
         <div className="col-span-12 md:col-span-4 flex flex-col gap-stack-md">
-
-          
-          {/* Chatbox Widget */}
           <ChatboxWidget games={status.games || []} />
         </div>
       </div>

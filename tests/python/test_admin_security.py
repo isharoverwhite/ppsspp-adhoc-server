@@ -14,9 +14,13 @@ class TestAdminSecurity(unittest.TestCase):
         s.send(packet)
         
         # Server should disconnect us
-        data = s.recv(1024)
-        self.assertEqual(len(data), 0, "Server did not disconnect user with 'admin' in name")
-        s.close()
+        try:
+            data = s.recv(1024)
+            self.assertEqual(len(data), 0, "Server did not disconnect user with 'admin' in name")
+        except ConnectionResetError:
+            pass # Disconnection by reset is also successful rejection
+        finally:
+            s.close()
 
 if __name__ == '__main__':
     unittest.main()

@@ -1,59 +1,34 @@
-# PPSSPP Ad-hoc Server & Analytics Dashboard
+# PPSSPP Ad-hoc Server (Go Edition) & Analytics Dashboard
 
-Lobby server hiệu năng cao dành cho giả lập PPSSPP, hỗ trợ đầy đủ giao thức PRO ONLINE. Dự án đi kèm với một trang **Admin Dashboard** cực kỳ trực quan giúp bạn quản lý Server dễ dàng.
+Lobby server hiệu năng cao dành cho giả lập PPSSPP, đã được chuyển đổi sang ngôn ngữ **Golang** để đạt độ ổn định và hiệu suất tối đa. Dự án đi kèm với một trang **Admin Dashboard** trực quan giúp bạn quản lý Server dễ dàng.
 
 ## Tính năng nổi bật
-- **Core Server (C)**: Single-threaded, non-blocking TCP lobby cực nhẹ, xử lý kết nối mượt mà cho hàng trăm người chơi.
+- **Core Server (Go)**: Kiến trúc đa luồng (Goroutines), cực nhẹ, xử lý kết nối mượt mà và chống treo server hiệu quả.
 - **Admin Dashboard (Next.js)**: 
-  - Xem Game Trends (biểu đồ thống kê thời lượng & người chơi).
+  - Xem Game Trends (biểu đồ donut thống kê thời lượng chơi của từng game).
   - Quản lý trạng thái Server thời gian thực (số người online, room đang mở).
-  - Khả năng Ban/Kick trực tiếp các user quậy phá.
+  - Khả năng Ban/Kick trực tiếp các user ngay trên trình duyệt.
   - Tự động nhận diện tên chuẩn xác của hơn 4,300 tựa game PSP.
+- **Docker Ready**: Triển khai siêu tốc chỉ với 1 lệnh duy nhất.
 
 ---
 
-## 🚀 Hướng Dẫn Cài Đặt
+## 🚀 Hướng Dẫn Cài Đặt (Dành cho Admin)
 
-### Cách 1: Chạy bằng Docker Image (Khuyên dùng)
-Mỗi khi có cập nhật, hệ thống tự động build Docker Image đa nền tảng (amd64 + arm64) lên GitHub Container Registry. Bạn chỉ cần chạy lệnh `docker run` sau (yêu cầu máy đã cài Docker):
-
-```bash
-docker run -d \
-  --name ppsspp-adhoc \
-  -p 27312:27312 \
-  -p 3000:3000 \
-  -v $(pwd)/database.db:/app/database.db \
-  -v $(pwd)/www:/app/www \
-  --restart unless-stopped \
-  ghcr.io/isharoverwhite/ppsspp-adhoc-server:latest
-```
-
-### Cách 2: Cài đặt tự động thành System Service (Native Build)
-Nếu bạn chạy trên Linux VPS (ví dụ Ubuntu/Debian) và muốn biên dịch trực tiếp từ mã nguồn, hãy dùng One-liner script sau. Lệnh này sẽ tự động tải code, dùng `make` để build C Server, dùng `npm run build` để build Dashboard, và tự cài đặt thành một service chạy ngầm (Systemd).
+Dự án hiện tại hoạt động tối ưu trên nền tảng **Docker**. Để cài đặt code mới nhất và build image vào máy, bạn chỉ cần chạy One-liner sau:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/isharoverwhite/ppsspp-adhoc-server/master/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/isharoverwhite/ppsspp-adhoc-server/master/install.sh | sudo bash
 ```
 
-### Cách 3: Biên dịch thủ công (Manual Make & NPM)
-Dành cho lập trình viên muốn tự biên dịch và chạy trên môi trường cục bộ (Mac/Linux). Yêu cầu đã cài đặt `gcc`, `make` và `Node.js`.
-
-**1. Biên dịch máy chủ game (C):**
+Sau khi cài đặt xong, bạn có thể khởi động server bằng lệnh:
 ```bash
-make clean
-make
-./AdhocServer
+cd /opt/ppsspp-adhoc-server && docker compose up -d
 ```
 
-**2. Biên dịch & chạy Dashboard (Next.js):**
-Mở một Terminal khác, di chuyển vào thư mục `webapp` và chạy:
-```bash
-cd webapp
-npm install --legacy-peer-deps
-npx prisma generate
-npm run build
-npm start
-```
+### Quản lý Server
+Hệ thống đi kèm công cụ CLI `ppsspp` để bạn dễ dàng cập nhật:
+- `ppsspp update`: Tự động tải code mới nhất từ GitHub và build lại ảnh Docker trên máy.
 
 ---
 
@@ -75,22 +50,20 @@ Sau khi Server khởi động thành công, bạn có thể truy cập ngay bả
 
 **👉 http://localhost:3000**
 
-*(Lưu ý thay `localhost` bằng IP của VPS nếu bạn cài đặt trên máy chủ đám mây).*
-
 ---
 
 ## ⚙️ Tùy Chỉnh Nâng Cao (Environment Variables)
 
-Bạn có thể truyền thêm các biến môi trường để tuỳ biến Server:
+Bạn có thể chỉnh sửa các biến môi trường trong file `/opt/ppsspp-adhoc-server/.env`:
 
 - `ADHOC_PORT`: Cổng kết nối game (mặc định: `27312`).
 - `ADHOC_MAX_USERS`: Giới hạn người chơi tối đa (mặc định: `1024`).
 - `ADHOC_TIMEOUT`: Thời gian chờ rớt mạng (mặc định: `15` giây).
 
-Ví dụ (Dành cho Docker): Thêm tham số `-e ADHOC_MAX_USERS=500` vào lệnh `docker run`.
-
 ---
 
-## Contributors
-- Kien Dinh Trung (Duy trì & Dashboard)
-- [Kyhel](https://github.com/Kyhel) (Bản gốc PPSSPP AdhocServer bằng C)
+## 💖 Vinh danh & Trích nguồn (Credits)
+Dự án này được kế thừa và phát triển dựa trên nền tảng tuyệt vời của các tác giả đi trước:
+- **[Souler](https://github.com/Souler/ppsspp-adhoc-server)**: Tác giả bản gốc AdhocServer bằng ngôn ngữ C - Nguồn cảm hứng chính cho dự án này.
+- **[Kyhel](https://github.com/Kyhel)**: Đóng góp quan trọng cho kiến trúc server C ban đầu.
+- **Kien Dinh Trung**: Chuyển đổi toàn bộ Core sang **Golang**, phát triển Dashboard và hệ thống Monitor.

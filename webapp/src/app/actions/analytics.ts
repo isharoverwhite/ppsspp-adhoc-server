@@ -37,7 +37,15 @@ export async function getAnalyticsData() {
             orderBy: { _count: { game: 'desc' } },
             take: 10
         });
-        const gameTrend = gameGroups.map(g => ({ game: g.game, count: g._count.game }));
+
+        // Fetch product names for mapping
+        const productIds = await prisma.$queryRaw<Array<{id: string, name: string}>>`SELECT id, name FROM productids`;
+        const productMap = new Map(productIds.map(p => [p.id, p.name]));
+
+        const gameTrend = gameGroups.map(g => {
+            const realName = productMap.get(g.game) || g.game;
+            return { game: realName, count: g._count.game };
+        });
 
         return { history, retention: { total: totalUnique, returning }, gameTrend };
     } catch (e: any) {
