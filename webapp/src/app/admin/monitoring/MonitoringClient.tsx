@@ -1,84 +1,89 @@
 'use client';
 
-import { useState, useEffect } from "react";
-import { Activity, Server, Users, Cpu, MemoryStick as Memory, Globe, RefreshCw, Trash2, Map } from "lucide-react";
 import ServerChat from "@/app/components/ServerChat";
 
 export default function MonitoringClient({ snapshots }: { snapshots: any[] }) {
   return (
-    <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700 max-w-7xl mx-auto">
-      
+    <div className="space-y-6 max-w-7xl mx-auto animate-in fade-in slide-in-from-bottom-4 duration-500">
       {/* Page Header */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-4">
-        <div>
-          <h2 className="font-headline-md text-3xl font-bold text-on-surface mb-2">Infrastructure Monitoring</h2>
-          <p className="font-body-sm text-on-surface-variant text-sm opacity-80">Server incident logs, resource spikes, and performance history.</p>
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 pb-2">
+        <div className="flex items-center gap-3">
+          <div className="w-11 h-11 rounded-2xl bg-sky-500/15 border border-sky-500/30 flex items-center justify-center text-sky-400 shadow-[0_0_15px_rgba(56,189,248,0.2)]">
+            <span className="material-symbols-outlined text-[24px]">memory</span>
+          </div>
+          <div>
+            <h1 className="text-2xl md:text-3xl font-extrabold text-white font-['Outfit'] tracking-tight">
+              Infrastructure &amp; Resource Health
+            </h1>
+            <p className="text-xs text-slate-400 font-sans">
+              Server incident logs, resource threshold spikes, and performance telemetry.
+            </p>
+          </div>
+        </div>
+        <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-900/80 border border-white/10 text-xs font-mono text-slate-400">
+          <span className="w-2 h-2 rounded-full bg-emerald-400 status-pulse"></span>
+          <span>HEALTH MONITOR: <strong>OPTIMAL</strong></span>
         </div>
       </div>
 
-      <div className="glass-card p-0 rounded-xl relative overflow-hidden flex flex-col">
-        <div className="p-card-padding border-b border-outline-variant flex justify-between items-center bg-surface-container-low">
-          <h3 className="font-headline-sm text-on-surface flex items-center gap-2">
-            <span className="material-symbols-outlined text-error">warning</span>
-            Incident Reports & Spikes
-          </h3>
-          <span className="font-label-caps text-[10px] text-on-surface-variant bg-surface-variant px-2 py-1 rounded">THRESHOLDS: CPU 80%, RAM 80%, PLY 50</span>
+      {/* Incident Reports Card */}
+      <div className="glass-card p-5 md:p-6 rounded-2xl flex flex-col">
+        <div className="flex justify-between items-center pb-4 mb-4 border-b border-white/10">
+          <div className="flex items-center gap-2">
+            <span className="material-symbols-outlined text-amber-400 text-[20px]">warning</span>
+            <h3 className="text-base font-bold text-white font-['Outfit']">System Telemetry &amp; Incident Reports</h3>
+          </div>
+          <span className="text-[10px] font-mono text-slate-400 bg-slate-800/80 px-2.5 py-1 rounded-lg border border-white/5">
+            THRESHOLDS: CPU 80% • RAM 80% • PLAYERS 50
+          </span>
         </div>
 
-        <div className="p-card-padding">
+        <div>
           {(!snapshots || snapshots.length === 0) ? (
-            <div className="py-16 text-center text-on-surface-variant font-data-md text-sm">
-              <span className="material-symbols-outlined block text-5xl mb-4 opacity-50">check_circle</span>
-              No incidents recorded recently.<br/>System is stable and operating within normal parameters.
+            <div className="py-16 text-center text-slate-400 font-mono text-xs space-y-2">
+              <span className="material-symbols-outlined block text-4xl mb-2 text-emerald-400">verified_user</span>
+              <p className="text-slate-300 font-bold text-sm">No incidents or resource spikes recorded.</p>
+              <p className="text-slate-500">Core Go daemon is operating within healthy parameters.</p>
             </div>
           ) : (
-            <div className="space-y-4">
+            <div className="space-y-3">
               {snapshots.map((snap) => {
-                const time = new Date(snap.timestamp).toLocaleString();
+                const time = new Date(snap.timestamp).toLocaleString('en-US', { hour12: false });
                 let detailsObj = null;
                 try { detailsObj = JSON.parse(snap.details || '{}'); } catch(e){}
                 
                 let icon = 'info';
-                let color = 'text-secondary-fixed-dim';
-                if (snap.triggerReason === 'HIGH_CPU') { icon = 'memory'; color = 'text-error'; }
-                if (snap.triggerReason === 'HIGH_RAM') { icon = 'storage'; color = 'text-error'; }
-                if (snap.triggerReason === 'PLAYER_SPIKE') { icon = 'group_add'; color = 'text-primary-fixed-dim'; }
+                let color = 'text-sky-400 bg-sky-500/10 border-sky-500/20';
+                if (snap.triggerReason === 'HIGH_CPU') { icon = 'memory'; color = 'text-rose-400 bg-rose-500/10 border-rose-500/20'; }
+                if (snap.triggerReason === 'HIGH_RAM') { icon = 'storage'; color = 'text-amber-400 bg-amber-500/10 border-amber-500/20'; }
+                if (snap.triggerReason === 'PLAYER_SPIKE') { icon = 'group_add'; color = 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20'; }
                 
                 return (
-                  <div key={snap.id} className="bg-surface-container-low border border-outline-variant/50 rounded-lg p-5 flex flex-col md:flex-row gap-4 justify-between items-start">
-                    <div className="flex gap-4">
-                      <div className={`w-12 h-12 rounded-full bg-surface-variant flex items-center justify-center ${color}`}>
-                        <span className="material-symbols-outlined text-2xl">{icon}</span>
+                  <div key={snap.id} className="bg-slate-900/60 border border-white/5 rounded-xl p-4 flex flex-col md:flex-row gap-4 justify-between items-start">
+                    <div className="flex items-center gap-3.5">
+                      <div className={`w-10 h-10 rounded-xl flex items-center justify-center border ${color}`}>
+                        <span className="material-symbols-outlined text-[20px]">{icon}</span>
                       </div>
                       <div>
-                        <div className="font-headline-sm text-lg text-on-surface mb-2 flex items-center gap-3">
-                          {snap.triggerReason}
-                          <span className="font-label-caps text-[10px] text-on-surface-variant px-2 py-0.5 rounded bg-surface-container-high border border-outline-variant/30">{time}</span>
+                        <div className="text-sm font-bold text-white mb-1 flex items-center gap-2.5">
+                          <span>{snap.triggerReason}</span>
+                          <span className="text-[10px] font-mono text-slate-400 px-2 py-0.5 rounded bg-slate-800 border border-white/5">{time}</span>
                         </div>
-                        <div className="font-data-md text-sm text-on-surface-variant flex flex-wrap gap-x-6 gap-y-2">
-                          <span className="flex items-center gap-1">
-                            <span className="material-symbols-outlined text-[16px] opacity-70">memory</span>
-                            CPU: <strong className="text-on-surface">{snap.cpuUsage.toFixed(1)}%</strong>
-                          </span>
-                          <span className="flex items-center gap-1">
-                            <span className="material-symbols-outlined text-[16px] opacity-70">storage</span>
-                            RAM: <strong className="text-on-surface">{snap.ramUsage.toFixed(1)}%</strong>
-                          </span>
-                          <span className="flex items-center gap-1">
-                            <span className="material-symbols-outlined text-[16px] opacity-70">group</span>
-                            Players: <strong className="text-on-surface">{snap.playerCount}</strong>
-                          </span>
+                        <div className="text-xs font-mono text-slate-400 flex flex-wrap gap-x-4 gap-y-1">
+                          <span>CPU: <strong className="text-white">{snap.cpuUsage.toFixed(1)}%</strong></span>
+                          <span>RAM: <strong className="text-white">{snap.ramUsage.toFixed(1)}%</strong></span>
+                          <span>Players: <strong className="text-white">{snap.playerCount}</strong></span>
                         </div>
                       </div>
                     </div>
                     {detailsObj && detailsObj.topGames && detailsObj.topGames.length > 0 && (
-                      <div className="bg-surface-container rounded-lg p-3 text-xs w-full md:w-1/3 border border-outline-variant/30">
-                        <div className="font-label-caps text-on-surface-variant mb-2">Top Active Games During Incident:</div>
-                        <div className="space-y-1.5">
+                      <div className="bg-slate-950/80 rounded-xl p-3 text-xs w-full md:w-1/3 border border-white/5">
+                        <div className="text-[10px] font-mono text-slate-400 uppercase mb-1.5">Top Games During Spike:</div>
+                        <div className="space-y-1 font-mono">
                           {detailsObj.topGames.slice(0, 3).map((g: any, idx: number) => (
-                            <div key={idx} className="flex justify-between font-data-md text-on-surface bg-surface-variant/30 px-2 py-1 rounded">
+                            <div key={idx} className="flex justify-between text-slate-300">
                               <span className="truncate pr-2">{g.name}</span>
-                              <span className="text-primary-fixed-dim font-bold">{g.usercount}</span>
+                              <span className="text-sky-400 font-bold">{g.usercount}</span>
                             </div>
                           ))}
                         </div>
@@ -90,20 +95,21 @@ export default function MonitoringClient({ snapshots }: { snapshots: any[] }) {
             </div>
           )}
         </div>
-        {/* Live Chat System */}
-        <div className="bg-white/5 border border-white/10 rounded-2xl p-6 lg:col-span-3">
-          <div className="flex items-center justify-between mb-6">
-            <div>
-              <h2 className="text-lg font-bold text-white flex items-center gap-2">
-                <Globe className="w-5 h-5 text-emerald-400" />
-                Live Chat System
-              </h2>
-              <p className="text-sm text-gray-400 mt-1">Real-time global and game-specific chat logs</p>
-            </div>
+      </div>
+
+      {/* Global Server Chat Log Section */}
+      <div className="glass-card p-5 md:p-6 rounded-2xl">
+        <div className="flex items-center justify-between pb-4 mb-4 border-b border-white/10">
+          <div>
+            <h2 className="text-base font-bold text-white font-['Outfit'] flex items-center gap-2">
+              <span className="material-symbols-outlined text-emerald-400 text-[20px]">forum</span>
+              Historical Server Chat Stream
+            </h2>
+            <p className="text-xs text-slate-400 mt-0.5">Persistent chat logs across all channels.</p>
           </div>
-          
-          <ServerChat />
         </div>
+        
+        <ServerChat />
       </div>
     </div>
   );

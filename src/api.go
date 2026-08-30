@@ -33,14 +33,11 @@ type UserStatus struct {
 	IP   string `json:"ip"` // Optional, format as dotted quad if needed
 }
 
-func startHTTPAPI(s *state.ServerState) {
-	port := os.Getenv("ADHOC_API_PORT")
-	if port == "" {
-		port = "8080" // Default API port for Webapp to fetch
-	}
-
-	http.HandleFunc("/api/status", func(w http.ResponseWriter, r *http.Request) {
+func GetStatusHandler(s *state.ServerState) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
+		w.Header().Set("Access-Control-Allow-Origin", "*")
+		w.Header().Set("Access-Control-Allow-Methods", "GET")
 		
 		s.Mu.RLock()
 		defer s.Mu.RUnlock()
@@ -102,7 +99,16 @@ func startHTTPAPI(s *state.ServerState) {
 		}
 
 		json.NewEncoder(w).Encode(resp)
-	})
+	}
+}
+
+func startHTTPAPI(s *state.ServerState) {
+	port := os.Getenv("ADHOC_API_PORT")
+	if port == "" {
+		port = "8080" // Default API port for Webapp to fetch
+	}
+
+	http.HandleFunc("/api/status", GetStatusHandler(s))
 
 	go func() {
 		if err := http.ListenAndServe(":"+port, nil); err != nil {

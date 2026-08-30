@@ -1,7 +1,6 @@
 import { getBans } from '@/app/actions/bans';
 import { getServerStatus } from '@/app/actions/serverStatus';
 import ClientBans from './ClientBans';
-
 import { prisma } from '@/lib/prisma';
 
 export const metadata = {
@@ -9,15 +8,15 @@ export const metadata = {
 };
 
 export const dynamic = 'force-dynamic';
+export const revalidate = 0;
 
 export default async function BansPage() {
-  let recentHistory: any[] = [];
-  
   const [bansResult, statusResult] = await Promise.all([
     getBans(),
     getServerStatus(),
   ]);
 
+  let recentHistory: any[] = [];
   try {
     recentHistory = await prisma.playerHistory.findMany({
       orderBy: { joinedAt: 'desc' },
@@ -26,33 +25,58 @@ export default async function BansPage() {
   } catch (e) {
     console.error("Failed to fetch player history", e);
   }
-  
-  const bans = bansResult.success ? bansResult.bans : [];
-  
-  let activeUsers: {name: string, mac: string, ip: string, offline?: boolean}[] = [];
-  if (statusResult.isOnline && statusResult.games) {
-     statusResult.games.forEach((g: any) => {
-         g.groups.forEach((grp: any) => {
-             if (grp.users) {
-                 activeUsers = activeUsers.concat(grp.users);
-             }
-         });
-     });
+
+  // Fetch product names for mapping game codes to human titles
+  let productMap = new Map<string, string>();
+  try {
+    const productIds = await prisma.$queryRaw<Array<{id: string, name: string}>>`SELECT id, name FROM productids`;
+    productMap = new Map(productIds.map(p => [p.id, p.name]));
+  } catch (e) {
+    // ignore
   }
 
-  const activeMacs = new Set(activeUsers.map(u => u.mac).filter(Boolean));
-  const historyMap = new Map();
-  recentHistory.forEach(h => {
-    if (h.mac && !activeMacs.has(h.mac) && !historyMap.has(h.mac)) {
-      historyMap.set(h.mac, { name: h.name, mac: h.mac, ip: h.ip, offline: true });
-    }
-  });
-  
-  const allSelectableUsers = [...activeUsers, ...Array.from(historyMap.values())];
+  const rawBans = bansResult.success ? bansResult.bans : [];
+
+  // 1. Online Users
+  const onlineList: any[] = [];
+  if (statusResult.isOnline && statusResult.games) {
+    statusResult.games.forEach((g: any) => {
+      const realGameName = productMap.get(g.name) || g.name;
+      g.groups.forEach((grp: any) => {
+        if (grp.users) {
+          grp.users.forEach((u: any) => {
+            onlineList.push({
+              name: u.name || 'Unknown Player',
+              mac: u.mac ? u.mac.toUpperCase() : '',
+              ip: u.ip || '',
+              game: realGameName,
+              group: grp.name,
+              isOnline: true
+            });
+          });
+        }
+      });
+    });
+  }
+
+  // 2. Map History with real game titles
+  const formattedHistory = recentHistory.map((h: any) => ({
+    id: h.id,
+    mac: h.mac ? h.mac.toUpperCase() : '',
+    ip: h.ip || '',
+    name: h.name || 'Unknown Player',
+    game: productMap.get(h.game) || h.game || 'PSP Title',
+    joinedAt: h.joinedAt,
+    leftAt: h.leftAt,
+  }));
 
   return (
     <div className="w-full h-full">
-      <ClientBans initialBans={bans as any[]} activeUsers={allSelectableUsers} />
+      <ClientBans 
+        initialBans={rawBans as any[]} 
+        onlineUsers={onlineList}
+        historyUsers={formattedHistory}
+      />
     </div>
   );
 }

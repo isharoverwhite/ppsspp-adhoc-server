@@ -33,4 +33,6 @@
 
 AdhocServer
 database.db*
+.agents/
+
 

@@ -29,12 +29,17 @@ export async function createBan(formData: FormData) {
     }
 
     const data: any = { reason };
-    if (ip) data.ip = ip;
-    if (mac) data.mac = mac.toUpperCase();
+    if (ip) data.ip = ip.trim();
+    if (mac) data.mac = mac.trim().toUpperCase();
 
     const ban = await prisma.ban.create({
       data,
     });
+
+    if (mac) {
+      const { kickPlayer } = await import('./serverControls');
+      await kickPlayer(mac.trim().toUpperCase());
+    }
 
     revalidatePath('/admin/bans');
     return { success: true, ban };
@@ -60,32 +65,56 @@ export async function deleteBan(id: number) {
   }
 }
 
-export async function banPlayer(mac: string, ip: string, reason: string = 'Banned by Admin') {
+export async function unbanByMacOrIp(mac?: string, ip?: string) {
+  try {
+    const conditions: any[] = [];
+    if (mac) conditions.push({ mac: mac.trim().toUpperCase() });
+    if (ip) conditions.push({ ip: ip.trim() });
+
+    if (conditions.length === 0) {
+      return { success: false, error: 'MAC or IP required to unban' };
+    }
+
+    const res = await prisma.ban.deleteMany({
+      where: {
+        OR: conditions,
+      },
+    });
+
+    revalidatePath('/admin/bans');
+    return { success: true, count: res.count };
+  } catch (error: any) {
+    console.error('Failed to unban player:', error);
+    return { success: false, error: error.message };
+  }
+}
+
+export async function banPlayer(mac?: string, ip?: string, reason: string = 'Banned by Admin') {
   if (!mac && !ip) return { success: false, error: 'MAC or IP required' };
   
   try {
-      const { kickPlayer } = await import('./serverControls');
-      
-      // 1. Add to Ban table
-      await prisma.ban.create({
-          data: {
-              mac: mac || null,
-              ip: ip || null,
-              reason: reason
-          }
-      });
-      
-      // 2. Kick the player immediately so they disconnect
-      if (mac) {
-          await kickPlayer(mac);
-      }
-      
-      revalidatePath('/admin/bans');
-      return { success: true };
+    const { kickPlayer } = await import('./serverControls');
+    
+    const data: any = { reason: reason || 'Banned by Admin' };
+    if (mac) data.mac = mac.trim().toUpperCase();
+    if (ip) data.ip = ip.trim();
+
+    // 1. Add to Ban table
+    const ban = await prisma.ban.create({
+      data,
+    });
+    
+    // 2. Kick the player immediately so they disconnect if online
+    if (mac) {
+      await kickPlayer(mac.trim().toUpperCase());
+    }
+    
+    revalidatePath('/admin/bans');
+    return { success: true, ban };
   } catch (e: any) {
-      if (e.code === 'P2002') {
-        return { success: false, error: 'This IP or MAC is already banned' };
-      }
-      return { success: false, error: e.message };
+    if (e.code === 'P2002') {
+      return { success: false, error: 'This IP or MAC is already banned' };
+    }
+    return { success: false, error: e.message };
   }
 }

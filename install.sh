@@ -97,10 +97,14 @@ npx prisma db push
 npm run build
 
 # Copy webapp to /opt (including .next and node_modules for 'npm start')
-echo "🚚 Installing dashboard files..."
+echo "🚚 Installing dashboard and welcome files..."
 rm -rf "$INSTALL_DIR/webapp"
 mkdir -p "$INSTALL_DIR/webapp"
 cp -a . "$INSTALL_DIR/webapp/"
+
+rm -rf "$INSTALL_DIR/welcome"
+mkdir -p "$INSTALL_DIR/welcome"
+cp -a "$TMP_DIR/welcome/." "$INSTALL_DIR/welcome/"
 
 # 7. Install Global CLI and Update Script
 echo "🛠️ Installing global 'ppsspp' CLI tool..."
@@ -113,7 +117,7 @@ chmod +x "$INSTALL_DIR/update.sh"
 echo "⚙️ Configuring Systemd service..."
 cat << EOF > /etc/systemd/system/ppsspp-adhoc.service
 [Unit]
-Description=PPSSPP Ad-hoc Server & Dashboard
+Description=PPSSPP Ad-hoc Server, Public Welcome & Dashboard
 After=network.target
 
 [Service]
@@ -121,6 +125,7 @@ Type=simple
 User=root
 WorkingDirectory=$INSTALL_DIR
 Environment=DATABASE_PATH=$INSTALL_DIR/data/database.db
+Environment=WELCOME_DIR=$INSTALL_DIR/welcome
 Environment=ADHOC_STATUS_PATH=$INSTALL_DIR/www/status.xml
 # Run Go server in background and Next.js in foreground
 ExecStart=/bin/bash -c "./AdhocServer & cd webapp && npm start"
@@ -136,7 +141,8 @@ systemctl restart ppsspp-adhoc
 
 echo "================================================="
 echo "🎉 Native Installation Complete!"
-echo "🎮 Ad-hoc Server Port : 27312"
+echo "🌐 Public Welcome Page: http://localhost (Port 80)"
+echo "🎮 Ad-hoc Server Port : 27312 (TCP)"
 echo "📊 Admin Dashboard    : http://localhost:3000"
 echo "💡 You can manage the service using 'ppsspp':"
 echo "   - ppsspp status"

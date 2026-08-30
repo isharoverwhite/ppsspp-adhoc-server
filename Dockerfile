@@ -22,8 +22,9 @@ FROM alpine:3.18
 RUN apk add --no-cache sqlite-libs tzdata nodejs npm
 WORKDIR /app
 
-# Copy Go binary
+# Copy Go binary and Welcome WebUI
 COPY --from=server-build /app/src/ppsspp-adhoc-go /app/AdhocServer
+COPY welcome/ /app/welcome/
 
 # Copy Next.js standalone build
 COPY --from=webapp-build /app/webapp/public /app/webapp/public
@@ -35,11 +36,12 @@ RUN mkdir -p /app/www
 
 # Script to run both
 RUN echo '#!/bin/sh' > /app/start.sh && \
-    echo 'ADHOC_STATUS_PATH=/app/www/status.xml /app/AdhocServer &' >> /app/start.sh && \
+    echo 'WELCOME_DIR=/app/welcome ADHOC_STATUS_PATH=/app/www/status.xml /app/AdhocServer &' >> /app/start.sh && \
     echo 'cd /app/webapp && node server.js' >> /app/start.sh && \
     chmod +x /app/start.sh
 
-# Ports: 27312 (Adhoc), 3000 (Next.js Admin)
+# Ports: 80 (Public Welcome Page), 27312 (Adhoc), 3000 (Next.js Admin)
+EXPOSE 80/tcp
 EXPOSE 27312/tcp
 EXPOSE 3000/tcp
 

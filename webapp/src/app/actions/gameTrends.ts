@@ -35,7 +35,7 @@ export async function getMonthlyGameTrends() {
             // Ignore glitches, cap at 12 hours
             const safeDuration = Math.max(0, Math.min(durationSeconds, 12 * 3600));
 
-            const gameId = session.game;
+            const gameId = session.game || 'UNKNOWN';
 
             if (!gameStats[gameId]) {
                 gameStats[gameId] = {
@@ -46,7 +46,9 @@ export async function getMonthlyGameTrends() {
             }
 
             gameStats[gameId].totalSeconds += safeDuration;
-            gameStats[gameId].uniqueMacs.add(session.mac);
+            if (session.mac) {
+                gameStats[gameId].uniqueMacs.add(session.mac);
+            }
         });
 
         // Fetch product names for mapping

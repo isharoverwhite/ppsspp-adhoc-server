@@ -12,10 +12,10 @@ export async function getChatLogs() {
         // Map Prisma ChatMessage to the format expected by ChatboxWidget
         return messages.map((m) => ({
             id: m.id,
-            timestamp: m.createdAt.toISOString().replace('T', ' ').substring(0, 19),
-            game: m.game === 'UNKNOWN' ? 'Global' : m.game,
-            sender: m.name,
-            message: m.message
+            timestamp: m.createdAt ? m.createdAt.toISOString().replace('T', ' ').substring(0, 19) : '',
+            game: !m.game || m.game === 'UNKNOWN' ? 'Global' : m.game,
+            sender: m.name || 'Anonymous',
+            message: m.message || ''
         })).reverse(); // Newest last, as expected by UI
     } catch (error) {
         console.error("Failed to read chat logs from DB", error);

@@ -1,0 +1,1216 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Play PSP with Experience</title>
+  
+  <!-- SEO & Search Engine Optimization -->
+  <meta name="description" content="Play PSP with Experience - Máy chủ PPSSPP / Real PSP Ad-hoc Multiplayer chất lượng cao, ping thấp và ổn định. Kết nối mượt mà với phong cách Furuhonya (Kani-chan) Chiikawa.">
+  <meta name="keywords" content="PPSSPP, PSP, Adhoc Server, Multiplayer, PRO Online, Furuhonya, Kani-chan, Chiikawa, Play PSP Online, Dinh Trung Kien">
+  <meta name="author" content="Đinh Trung Kiên">
+  <meta name="robots" content="index, follow">
+
+  <!-- Open Graph / Facebook -->
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://ppsspp.isharoverwhite.com/">
+  <meta property="og:title" content="Play PSP with Experience">
+  <meta property="og:description" content="Máy chủ PPSSPP / Real PSP Ad-hoc Multiplayer với phong cách Furuhonya (Kani-chan) Chiikawa. Tương thích 100% với máy PSP thực.">
+  <meta property="og:image" content="https://ppsspp.isharoverwhite.com/favicon.png">
+
+  <!-- Twitter -->
+  <meta property="twitter:card" content="summary">
+  <meta property="twitter:url" content="https://ppsspp.isharoverwhite.com/">
+  <meta property="twitter:title" content="Play PSP with Experience">
+  <meta property="twitter:description" content="Máy chủ PPSSPP / Real PSP Ad-hoc Multiplayer với phong cách Furuhonya (Kani-chan) Chiikawa.">
+  <meta property="twitter:image" content="https://ppsspp.isharoverwhite.com/favicon.png">
+
+  <!-- Favicons -->
+  <link rel="icon" type="image/x-icon" href="/favicon.ico">
+  <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+  <link rel="icon" type="image/png" sizes="192x192" href="/favicon.png">
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@500;600;700&family=Nunito:wght@600;700;800;900&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" rel="stylesheet" />
+  
+  <style>
+    :root {
+      /* Furuhonya (Kani-chan) Color Palette */
+      --bg-paper: #FCFAF8; /* Secondhand book paper */
+      --bg-peach: #FFF2EE; /* Pale peach / Salmon body */
+      --primary-salmon: #FFA599; /* Main salmon-peach */
+      --primary-coral: #FF7B89; /* Crab headband / Dark pink patch */
+      --primary-coral-hover: #F26A78;
+      --card-bg: #FFFFFF;
+      --text-dark: #634C45; /* Warm sepia brown */
+      --text-muted: #A3918B;
+      
+      --shadow-soft: 0 12px 32px rgba(255, 123, 137, 0.08);
+      --shadow-hover: 0 16px 40px rgba(255, 123, 137, 0.15);
+      --shadow-sm: 0 6px 16px rgba(255, 165, 153, 0.15);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Quicksand', sans-serif;
+      background-color: var(--bg-paper);
+      /* Lined paper pattern reflecting her bookish nature */
+      background-image: repeating-linear-gradient(transparent, transparent 29px, #F0E6E1 29px, #F0E6E1 30px);
+      background-attachment: local;
+      color: var(--text-dark);
+      line-height: 1.5;
+      overflow-x: hidden;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    h1, h2, h3, h4, .font-heading {
+      font-family: 'Nunito', sans-serif;
+      font-weight: 800;
+    }
+
+    /* Mobile-First Layout Core */
+    .container {
+      width: 100%;
+      padding: 0 16px;
+      margin: 0 auto;
+    }
+
+    @media (min-width: 768px) {
+      .container { padding: 0 32px; max-width: 800px; }
+    }
+    @media (min-width: 1024px) {
+      .container { max-width: 1100px; }
+    }
+
+    /* Marquee - The Crab Headband */
+    .announcement-bar {
+      background: var(--primary-coral);
+      color: #FFFFFF;
+      padding: 10px 0;
+      overflow: hidden;
+      white-space: nowrap;
+      position: relative;
+      font-weight: 700;
+      font-size: 13px;
+      letter-spacing: 0.5px;
+      box-shadow: 0 2px 10px rgba(255, 123, 137, 0.2);
+    }
+    @media (min-width: 768px) {
+      .announcement-bar { padding: 12px 0; font-size: 15px; }
+    }
+
+    .marquee-content {
+      display: inline-block;
+      animation: marquee 25s linear infinite;
+    }
+    @keyframes marquee {
+      0% { transform: translateX(0%); }
+      100% { transform: translateX(-50%); }
+    }
+
+    /* Common Card Styles - Soft and Book-like */
+    .soft-card {
+      background: var(--card-bg);
+      border-radius: 24px;
+      box-shadow: var(--shadow-soft);
+      border: 2px solid #FFF5F2;
+      transition: all 0.3s ease;
+    }
+    @media (min-width: 768px) {
+      .soft-card { border-radius: 36px; border-width: 3px; }
+      .soft-card:hover { transform: translateY(-4px); box-shadow: var(--shadow-hover); }
+    }
+
+    /* Buttons */
+    .pill-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 14px 24px;
+      font-family: 'Nunito', sans-serif;
+      font-weight: 800;
+      font-size: 15px;
+      border-radius: 999px;
+      cursor: pointer;
+      border: none;
+      width: 100%;
+      transition: all 0.2s ease;
+    }
+    @media (min-width: 768px) {
+      .pill-btn { padding: 16px 36px; font-size: 17px; width: auto; gap: 10px; }
+      .pill-btn:hover { transform: translateY(-2px) scale(1.02); }
+      .pill-btn:active { transform: translateY(1px) scale(0.98); }
+    }
+
+    .pill-btn-coral { 
+      background: var(--primary-coral); 
+      color: #FFFFFF; 
+      box-shadow: 0 8px 20px rgba(255, 123, 137, 0.35);
+    }
+    @media (min-width: 768px) {
+      .pill-btn-coral:hover {
+        background: var(--primary-coral-hover);
+        box-shadow: 0 12px 28px rgba(255, 123, 137, 0.45);
+      }
+    }
+
+    
+    /* Language Switcher */
+    .header-content {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      position: relative;
+      width: 100%;
+    }
+    .lang-switcher {
+      position: absolute;
+      right: 0;
+      top: 50%;
+      transform: translateY(-50%);
+    }
+    #lang-select {
+      background: var(--bg-paper);
+      border: 1px solid #EFE4DF;
+      color: var(--text-dark);
+      font-family: 'Nunito', sans-serif;
+      font-weight: 700;
+      padding: 6px 12px;
+      border-radius: 12px;
+      outline: none;
+      cursor: pointer;
+      box-shadow: var(--shadow-sm);
+    }
+
+    /* Header */
+    header {
+      padding: 24px 0 16px;
+      display: flex;
+      justify-content: center;
+    }
+    @media (min-width: 768px) {
+      header { padding: 40px 0 20px; }
+    }
+
+    .logo-badge {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-decoration: none;
+      background: #FFFFFF;
+      padding: 8px 18px;
+      border-radius: 999px;
+      box-shadow: var(--shadow-sm);
+    }
+    @media (min-width: 768px) {
+      .logo-badge { padding: 12px 28px; }
+    }
+
+    .logo-text {
+      font-family: 'Nunito', sans-serif;
+      font-size: 15px;
+      font-weight: 900;
+      color: var(--primary-coral);
+      letter-spacing: 0.5px;
+      white-space: nowrap;
+    }
+    @media (min-width: 480px) {
+      .logo-text { font-size: 18px; }
+    }
+    @media (min-width: 768px) {
+      .logo-text { font-size: 22px; letter-spacing: 1px; }
+    }
+
+    /* Hero Section */
+    .hero {
+      padding: 24px 0 40px;
+      text-align: center;
+    }
+    @media (min-width: 768px) {
+      .hero { padding: 30px 0 60px; }
+    }
+
+    .hero-title {
+      font-size: 30px;
+      line-height: 1.35;
+      margin-bottom: 12px;
+      color: var(--text-dark);
+    }
+    .hero-title span.salmon { color: var(--primary-salmon); }
+    .hero-title span.coral { color: var(--primary-coral); }
+    
+    @media (min-width: 768px) {
+      .hero-title { font-size: 44px; margin-bottom: 16px; }
+    }
+
+    .hero-subtitle {
+      font-size: 15px;
+      color: var(--text-muted);
+      margin: 0 auto 24px;
+      font-weight: 600;
+      max-width: 620px;
+    }
+    @media (min-width: 768px) {
+      .hero-subtitle { font-size: 18px; margin-bottom: 36px; }
+    }
+
+    /* Live Server Status Badge */
+    .status-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      background: #FFFFFF;
+      border-radius: 999px;
+      padding: 8px 20px;
+      box-shadow: var(--shadow-sm);
+      margin-bottom: 32px;
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--text-dark);
+      border: 1px solid var(--bg-peach);
+    }
+    @media (min-width: 768px) {
+      .status-pill { padding: 10px 28px; font-size: 15px; margin-bottom: 40px; gap: 12px; }
+    }
+
+    .live-dot {
+      width: 10px;
+      height: 10px;
+      background: #4ADE80;
+      border-radius: 50%;
+      box-shadow: 0 0 0 3px rgba(74, 222, 128, 0.2);
+      animation: pulse 2s infinite;
+    }
+    @media (min-width: 768px) {
+      .live-dot { width: 12px; height: 12px; box-shadow: 0 0 0 4px rgba(74, 222, 128, 0.2); }
+    }
+
+    /* Centerpiece Domain Card - Bookish & Peach */
+    .domain-centerpiece {
+      background: linear-gradient(145deg, #FFFFFF 0%, var(--bg-peach) 100%);
+      padding: 30px 20px;
+      max-width: 100%;
+      margin: 0 auto 40px;
+      position: relative;
+    }
+    @media (min-width: 768px) {
+      .domain-centerpiece { padding: 50px 40px; max-width: 800px; margin-bottom: 60px; }
+    }
+
+    .domain-label {
+      font-size: 12px; 
+      font-weight: 800; 
+      color: var(--primary-salmon); 
+      letter-spacing: 1px; 
+      text-transform: uppercase;
+    }
+    @media (min-width: 768px) {
+      .domain-label { font-size: 14px; letter-spacing: 1.5px; }
+    }
+
+    .domain-display {
+      font-family: 'Nunito', sans-serif;
+      font-size: 22px;
+      font-weight: 900;
+      color: var(--primary-coral);
+      background: #FFFFFF;
+      padding: 16px;
+      border-radius: 20px;
+      box-shadow: 0 8px 24px rgba(255, 165, 153, 0.15);
+      margin: 16px auto 24px;
+      display: inline-block;
+      word-break: break-all;
+      width: 100%;
+    }
+    @media (min-width: 768px) {
+      .domain-display { font-size: 34px; padding: 24px 36px; border-radius: 24px; margin: 20px auto 36px; width: auto; box-shadow: 0 10px 30px rgba(255, 165, 153, 0.2); }
+    }
+
+    .quick-params {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      margin-top: 24px;
+    }
+    @media (min-width: 768px) {
+      .quick-params { flex-direction: row; justify-content: center; gap: 20px; margin-top: 30px; }
+    }
+
+    .param-badge {
+      background: #FFFFFF;
+      padding: 12px 20px;
+      border-radius: 20px;
+      font-weight: 700;
+      font-size: 14px;
+      color: var(--text-dark);
+      box-shadow: var(--shadow-sm);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+    @media (min-width: 768px) {
+      .param-badge { padding: 12px 24px; border-radius: 999px; font-size: 15px; }
+    }
+
+    .param-badge span.val {
+      color: var(--primary-salmon);
+      font-size: 16px;
+    }
+    @media (min-width: 768px) {
+      .param-badge span.val { font-size: 18px; }
+    }
+
+    /* Sections Shared */
+    .section-title-wrap {
+      text-align: center;
+      margin-bottom: 30px;
+    }
+    @media (min-width: 768px) {
+      .section-title-wrap { margin-bottom: 50px; }
+    }
+
+    .section-title {
+      font-size: 24px;
+      color: var(--text-dark);
+      margin-bottom: 8px;
+      display: inline-block;
+      border-bottom: 3px dashed var(--primary-salmon);
+      padding-bottom: 8px;
+    }
+    @media (min-width: 768px) {
+      .section-title { font-size: 32px; margin-bottom: 12px; }
+    }
+
+    /* Steps Section */
+    .steps-grid {
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+      margin-bottom: 60px;
+    }
+    @media (min-width: 768px) {
+      .steps-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 30px; margin-bottom: 80px; }
+    }
+
+    .step-card {
+      padding: 24px 20px;
+      text-align: center;
+      border: 1px solid #F6EDEA;
+    }
+    @media (min-width: 768px) {
+      .step-card { padding: 36px 28px; }
+    }
+
+    .step-number {
+      width: 48px;
+      height: 48px;
+      background: var(--primary-salmon);
+      color: #FFFFFF;
+      border-radius: 16px;
+      transform: rotate(-5deg);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: 'Nunito', sans-serif;
+      font-size: 22px;
+      font-weight: 900;
+      margin: 0 auto 16px;
+      box-shadow: 0 6px 16px rgba(255, 165, 153, 0.4);
+    }
+    @media (min-width: 768px) {
+      .step-number { width: 56px; height: 56px; font-size: 26px; margin-bottom: 20px; box-shadow: 0 8px 20px rgba(255, 165, 153, 0.4); }
+    }
+
+    .step-title {
+      font-size: 19px;
+      margin-bottom: 10px;
+      color: var(--primary-coral);
+    }
+    @media (min-width: 768px) {
+      .step-title { font-size: 22px; margin-bottom: 12px; }
+    }
+
+    .step-desc {
+      font-size: 14px;
+      color: var(--text-muted);
+      margin-bottom: 20px;
+    }
+    @media (min-width: 768px) {
+      .step-desc { font-size: 15px; margin-bottom: 24px; }
+    }
+
+    .setting-pill {
+      background: var(--bg-paper);
+      padding: 12px 16px;
+      border-radius: 12px;
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--text-dark);
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      border: 1px solid #EFE4DF;
+    }
+    @media (min-width: 768px) {
+      .setting-pill { padding: 12px 20px; font-size: 14px; gap: 8px; }
+    }
+
+    /* Platforms */
+    .platform-tabs {
+      display: flex;
+      flex-direction: row;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 10px;
+      margin-bottom: 30px;
+    }
+    @media (min-width: 768px) {
+      .platform-tabs { gap: 16px; margin-bottom: 40px; }
+    }
+
+    .tab-btn {
+      padding: 10px 18px;
+      border-radius: 16px;
+      background: #FFFFFF;
+      color: var(--text-muted);
+      font-family: 'Nunito', sans-serif;
+      font-size: 14px;
+      font-weight: 800;
+      cursor: pointer;
+      border: 1px solid #F0E6E1;
+      box-shadow: var(--shadow-sm);
+      transition: all 0.3s ease;
+      flex: 1 1 auto;
+      text-align: center;
+    }
+    @media (min-width: 768px) {
+      .tab-btn { padding: 14px 28px; font-size: 16px; flex: none; }
+      .tab-btn:hover { background: var(--bg-peach); }
+      .tab-btn.active { transform: translateY(-3px); box-shadow: 0 10px 24px rgba(255, 165, 153, 0.3); }
+    }
+    
+    .tab-btn.active {
+      background: var(--primary-salmon);
+      color: #FFFFFF;
+      border-color: var(--primary-salmon);
+    }
+
+    .tab-pane {
+      display: none;
+      animation: softFadeIn 0.3s ease;
+    }
+    .tab-pane.active { display: block; }
+    @keyframes softFadeIn {
+      from { opacity: 0; transform: translateY(8px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .guide-card {
+      padding: 24px;
+      margin-bottom: 60px;
+      border: 1px solid #F6EDEA;
+    }
+    @media (min-width: 768px) {
+      .guide-card { padding: 40px; margin-bottom: 80px; }
+    }
+    
+    .guide-card h3 {
+      font-size: 20px;
+      margin-bottom: 12px;
+      text-align: center;
+      color: var(--primary-coral);
+    }
+    @media (min-width: 768px) {
+      .guide-card h3 { font-size: 24px; margin-bottom: 20px; text-align: left; }
+    }
+
+    .guide-step-list {
+      list-style: none;
+      margin-top: 16px;
+    }
+    @media (min-width: 768px) {
+      .guide-step-list { margin-top: 24px; }
+    }
+
+    .guide-step-list li {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 16px;
+      font-size: 14px;
+      font-weight: 600;
+      align-items: flex-start;
+      padding-bottom: 16px;
+      border-bottom: 1px dashed #F0E6E1;
+    }
+    .guide-step-list li:last-child { border-bottom: none; padding-bottom: 0; }
+    @media (min-width: 768px) {
+      .guide-step-list li { gap: 16px; margin-bottom: 20px; font-size: 16px; }
+    }
+
+    .guide-step-list li .bullet {
+      width: 28px;
+      height: 28px;
+      min-width: 28px;
+      border-radius: 8px;
+      background: var(--bg-peach);
+      color: var(--primary-coral);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 13px;
+      font-weight: 800;
+      margin-top: 2px;
+    }
+    @media (min-width: 768px) {
+      .guide-step-list li .bullet { width: 32px; height: 32px; min-width: 32px; font-size: 14px; margin-top: 0; }
+    }
+
+    /* Live Rooms */
+    .rooms-section {
+      margin-bottom: 60px;
+    }
+    @media (min-width: 768px) {
+      .rooms-section { margin-bottom: 80px; }
+    }
+
+    .room-grid {
+      display: flex;
+      flex-wrap: nowrap;
+      overflow-x: auto;
+      gap: 16px;
+      padding-bottom: 12px;
+      scroll-snap-type: x mandatory;
+      -webkit-overflow-scrolling: touch;
+      scrollbar-width: none; /* Firefox */
+    }
+    .room-grid::-webkit-scrollbar {
+      display: none; /* Chrome, Safari, Opera */
+    }
+    @media (min-width: 768px) {
+      .room-grid { 
+        display: grid; 
+        grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); 
+        gap: 24px; 
+        overflow-x: visible;
+      }
+    }
+
+    .room-card {
+      padding: 20px;
+      text-align: center;
+      border: 1px solid #F6EDEA;
+      flex: 0 0 85%; /* Peek of the next card on mobile */
+      scroll-snap-align: center;
+    }
+    @media (min-width: 768px) {
+      .room-card { padding: 24px; flex: auto; }
+    }
+
+    .room-game-title {
+      font-size: 16px;
+      font-weight: 800;
+      margin-bottom: 10px;
+      color: var(--text-dark);
+    }
+    @media (min-width: 768px) {
+      .room-game-title { font-size: 18px; margin-bottom: 12px; }
+    }
+
+    .room-badge {
+      display: inline-block;
+      padding: 4px 12px;
+      border-radius: 8px;
+      font-size: 11px;
+      font-weight: 800;
+      background: var(--primary-salmon);
+      color: #FFFFFF;
+      margin-bottom: 12px;
+    }
+    @media (min-width: 768px) {
+      .room-badge { padding: 6px 14px; font-size: 12px; margin-bottom: 16px; }
+    }
+
+    /* Footer */
+    footer {
+      text-align: center;
+      padding: 40px 0 30px;
+      background: var(--bg-peach);
+      margin-top: 20px;
+    }
+    @media (min-width: 768px) {
+      footer { padding: 60px 0 40px; margin-top: 40px; }
+    }
+
+    .footer-links {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      gap: 16px;
+      margin-bottom: 20px;
+    }
+    @media (min-width: 768px) {
+      .footer-links { flex-direction: row; gap: 24px; margin-bottom: 24px; }
+    }
+
+    .footer-link {
+      text-decoration: none;
+      color: var(--text-muted);
+      font-weight: 700;
+      font-size: 14px;
+      transition: color 0.2s;
+    }
+    @media (min-width: 768px) {
+      .footer-link { font-size: 15px; }
+      .footer-link:hover { color: var(--primary-coral); }
+    }
+
+    /* Toast */
+    .toast {
+      position: fixed;
+      bottom: 24px;
+      left: 50%;
+      transform: translateX(-50%) translateY(100px);
+      background: var(--primary-coral);
+      color: #FFFFFF;
+      padding: 12px 24px;
+      border-radius: 999px;
+      font-family: 'Nunito', sans-serif;
+      font-weight: 800;
+      font-size: 14px;
+      box-shadow: 0 10px 24px rgba(255, 123, 137, 0.4);
+      opacity: 0;
+      transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+      z-index: 9999;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      width: max-content;
+      max-width: 90vw;
+    }
+    @media (min-width: 768px) {
+      .toast { bottom: 40px; padding: 14px 32px; font-size: 16px; gap: 10px; }
+    }
+    .toast.show {
+      transform: translateX(-50%) translateY(0);
+      opacity: 1;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="announcement-bar">
+    <div class="marquee-content" data-i18n="marquee">
+      🦀 CHÀO MỪNG ĐẾN VỚI TIỆM SÁCH CŨ (FURUHONYA) • CHƠI MULTIPLAYER PSP ONLINE (TCP 27312) • OFFSET: 0 • TƯƠNG THÍCH HOÀN TOÀN MÁY PSP THỰC • 🦀 CHÀO MỪNG ĐẾN VỚI TIỆM SÁCH CŨ
+    </div>
+  </div>
+
+  <div class="container">
+    
+    <header>
+      <div class="header-content">
+        <a href="/" class="logo-badge" style="flex-direction: row; gap: 8px; align-items: center;">
+          <img src="/furuhonya.png" alt="Furuhonya" style="width: 28px; height: 28px; object-fit: contain; flex-shrink: 0;">
+          <span class="logo-text">Play PSP with Experience</span>
+        </a>
+        <div class="lang-switcher">
+          <select id="lang-select" onchange="changeLanguage(this.value)">
+            <option value="vi">🇻🇳 VN</option>
+            <option value="en">🇬🇧 EN</option>
+            <option value="th">🇹🇭 TH</option>
+            <option value="id">🇮🇩 ID</option>
+          </select>
+        </div>
+      </div>
+    </header>
+
+    <section class="hero">
+      <h1 class="hero-title" data-i18n="hero_title">
+        Sảnh Chơi <span class="salmon">Multiplayer</span><br>
+        Dành Cho <span class="coral">PSP &amp; PPSSPP</span>
+      </h1>
+      
+      <p class="hero-subtitle" data-i18n="hero_subtitle">
+        Kết nối dịu êm, thư giãn và mượt mà. Hỗ trợ đa nền tảng và tương thích hoàn toàn với máy PSP thực.
+      </p>
+
+      <div class="status-pill">
+        <span class="live-dot"></span>
+        <span id="server-status-text" data-i18n="status_connecting">Đang kết nối tới server...</span>
+      </div>
+
+      <div class="soft-card domain-centerpiece">
+        <div class="domain-label" data-i18n="domain_label">
+          Server Domain (PRO Adhoc IP)
+        </div>
+        
+        <div class="domain-display" id="main-domain-text">
+          direct.play.isharoverwhite.com
+        </div>
+
+        <div>
+          <button class="pill-btn pill-btn-coral" onclick="copyText('direct.play.isharoverwhite.com', 'Domain')" data-i18n="btn_copy">
+            <span class="material-symbols-outlined">content_copy</span>
+            SAO CHÉP DOMAIN
+          </button>
+        </div>
+
+        <div class="quick-params">
+          <div class="param-badge">
+            PORT: <span class="val">27312</span>
+          </div>
+          <div class="param-badge">
+            OFFSET: <span class="val">0</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <div class="section-title-wrap">
+        <h2 class="section-title" data-i18n="steps_title">3 Bước Cài Đặt Dễ Dàng</h2>
+      </div>
+
+      <div class="steps-grid">
+        <div class="soft-card step-card">
+          <div class="step-number">1</div>
+          <h3 class="step-title" data-i18n="step1_title">Bật Mạng</h3>
+          <p class="step-desc" data-i18n="step1_desc">Vào Settings &gt; Networking trong cài đặt.</p>
+          <div class="setting-pill">
+            <div style="display: flex; justify-content: space-between;">
+              <span>WLAN:</span>
+              <span style="color: #4ADE80;" data-i18n="step1_wlan">BẬT (ON)</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="soft-card step-card">
+          <div class="step-number">2</div>
+          <h3 class="step-title" data-i18n="step2_title">Nhập Server</h3>
+          <p class="step-desc" data-i18n="step2_desc">Điền Domain vào ô Change PRO ad hoc IP.</p>
+          <div class="setting-pill">
+            <div style="display: flex; justify-content: space-between;">
+              <span>Built-in:</span>
+              <span style="color: var(--primary-coral);" data-i18n="step2_builtin">TẮT (OFF)</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="soft-card step-card">
+          <div class="step-number">3</div>
+          <h3 class="step-title" data-i18n="step3_title">Port Offset</h3>
+          <p class="step-desc" data-i18n="step3_desc">Giữ offset ở mức 0 để tương thích nhất.</p>
+          <div class="setting-pill">
+            <div style="display: flex; justify-content: space-between;">
+              <span>Offset:</span>
+              <span style="color: var(--primary-salmon);" data-i18n="step3_offset">0 (Mặc định)</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <div class="section-title-wrap">
+        <h2 class="section-title" data-i18n="guide_title">Hướng Dẫn Cụ Thể</h2>
+      </div>
+
+      <div class="platform-tabs">
+        <button class="tab-btn active" onclick="switchTab('tab-mobile', this)" data-i18n="tab_mobile">📱 Mobile</button>
+        <button class="tab-btn" onclick="switchTab('tab-pc', this)" data-i18n="tab_pc">💻 PC / Mac</button>
+        <button class="tab-btn" onclick="switchTab('tab-psp', this)" data-i18n="tab_psp">🎮 Máy PSP Thực</button>
+      </div>
+
+      <div id="tab-mobile" class="tab-pane active">
+        <div class="soft-card guide-card">
+          <h3 data-i18n="mobile_title">Cấu Hình Điện Thoại (Android / iOS)</h3>
+          <ul class="guide-step-list">
+            <li><span class="bullet">1</span><span data-i18n="mobile_step1">Vào <strong>Settings</strong> &gt; <strong>Networking</strong> &gt; Bật <strong>Enable networking/WLAN</strong>.</span></li>
+            <li><span class="bullet">2</span><span data-i18n="mobile_step2">Chọn <strong>Change PRO ad hoc server IP address</strong> và dán: <code style="background: var(--bg-peach); padding: 2px 6px; border-radius: 6px; color: var(--primary-coral); word-break: break-all;">ppsspp.isharoverwhite.com</code>.</span></li>
+            <li><span class="bullet">3</span><span data-i18n="mobile_step3">Tắt <strong>Enable built-in PRO ad hoc server</strong>.</span></li>
+            <li><span class="bullet">4</span><span data-i18n="mobile_step4">Đặt <strong>Port offset = 0</strong>.</span></li>
+          </ul>
+        </div>
+      </div>
+
+      <div id="tab-pc" class="tab-pane">
+        <div class="soft-card guide-card">
+          <h3 data-i18n="pc_title">Cấu Hình Máy Tính (Windows / macOS)</h3>
+          <ul class="guide-step-list">
+            <li><span class="bullet">1</span><span data-i18n="pc_step1">Mở PPSSPP, vào <strong>Settings</strong> &gt; <strong>Networking</strong> &gt; Bật <strong>Enable networking/WLAN</strong>.</span></li>
+            <li><span class="bullet">2</span><span data-i18n="pc_step2">Dán Domain Server vào ô <strong>Change PRO ad hoc IP</strong>.</span></li>
+            <li><span class="bullet">3</span><span data-i18n="pc_step3">Tắt <strong>built-in server</strong> và đặt <strong>Port offset = 0</strong>.</span></li>
+            <li><span class="bullet">4</span><span data-i18n="pc_step4"><em>Windows:</em> Cho phép PPSSPP qua Windows Defender Firewall nếu được hỏi.</span></li>
+          </ul>
+        </div>
+      </div>
+
+      <div id="tab-psp" class="tab-pane">
+        <div class="soft-card guide-card">
+          <h3 data-i18n="psp_title">Cấu Hình Máy PSP Thật (Hardware)</h3>
+          <ul class="guide-step-list">
+            <li><span class="bullet">1</span><span data-i18n="psp_step1">Tải plugin <strong>Pro Online Client</strong>และ chép <code style="background: var(--bg-peach); padding: 2px 6px; border-radius: 6px;">Atpro.prx</code> vào thẻ nhớ PSP.</span></li>
+            <li><span class="bullet">2</span><span data-i18n="psp_step2">Mở file <code style="background: var(--bg-peach); padding: 2px 6px; border-radius: 6px;">server.txt</code>, điền <code style="color: var(--primary-coral); word-break: break-all;">ppsspp.isharoverwhite.com</code>.</span></li>
+            <li><span class="bullet">3</span><span data-i18n="psp_step3">Thêm dòng <code style="background: var(--bg-peach); padding: 2px 6px; border-radius: 6px; word-break: break-all;">ms0:/seplugins/atpro.prx 1</code> vào file game.txt.</span></li>
+            <li><span class="bullet">4</span><span data-i18n="psp_step4">Kết nối PSP vào WiFi (chuẩn bảo mật WPA/WPA2) và mở game.</span></li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <section class="rooms-section">
+      <div class="section-title-wrap">
+        <h2 class="section-title" data-i18n="rooms_title">Góc Sách & Sảnh Chơi</h2>
+      </div>
+
+      <div id="rooms-container" class="room-grid">
+        <div class="soft-card room-card" style="padding: 40px 20px;">
+          <h4 style="font-size: 18px; color: var(--text-muted);" data-i18n="search_book">Đang mở sổ tìm kiếm...</h4>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <footer>
+    <div class="container">
+      <div class="footer-links">
+        <a href="https://www.ppsspp.org" target="_blank" class="footer-link">PPSSPP Official</a>
+      </div>
+      <p style="color: var(--text-muted); font-size: 13px; font-weight: 600;" data-i18n="footer_credit">
+        Experience (Đinh Trung Kiên) with Furuhonya (Kani-chan) design.
+      </p>
+    </div>
+  </footer>
+
+  <div id="toast" class="toast">
+    <span class="material-symbols-outlined">check_circle</span>
+    <span id="toast-text" data-i18n="copied">Đã sao chép!</span>
+  </div>
+
+  <script>
+
+    const i18n = {
+      vi: {
+        marquee: "🦀 CHÀO MỪNG ĐẾN VỚI TIỆM SÁCH CŨ (FURUHONYA) • CHƠI MULTIPLAYER PSP ONLINE (TCP 27312) • OFFSET: 0 • TƯƠNG THÍCH HOÀN TOÀN MÁY PSP THỰC • 🦀 CHÀO MỪNG ĐẾN VỚI TIỆM SÁCH CŨ",
+        hero_title: "Sảnh Chơi <span class=\"salmon\">Multiplayer</span><br>Dành Cho <span class=\"coral\">PSP &amp; PPSSPP</span>",
+        hero_subtitle: "Kết nối dịu êm, thư giãn và mượt mà. Hỗ trợ đa nền tảng và tương thích hoàn toàn với máy PSP thực.",
+        domain_label: "Server Domain (PRO Adhoc IP)",
+        btn_copy: "<span class=\"material-symbols-outlined\">content_copy</span> SAO CHÉP DOMAIN",
+        copied: "Đã sao chép {label}!",
+        steps_title: "3 Bước Cài Đặt Dễ Dàng",
+        step1_title: "Bật Mạng",
+        step1_desc: "Vào Settings &gt; Networking trong cài đặt.",
+        step1_wlan: "BẬT (ON)",
+        step2_title: "Nhập Server",
+        step2_desc: "Điền Domain vào ô Change PRO ad hoc IP.",
+        step2_builtin: "TẮT (OFF)",
+        step3_title: "Port Offset",
+        step3_desc: "Giữ offset ở mức 0 để tương thích nhất.",
+        step3_offset: "0 (Mặc định)",
+        guide_title: "Hướng Dẫn Cụ Thể",
+        tab_mobile: "📱 Điện Thoại",
+        tab_pc: "💻 PC / Mac",
+        tab_psp: "🎮 Máy PSP Thực",
+        mobile_title: "Cấu Hình Điện Thoại (Android / iOS)",
+        mobile_step1: "Vào <strong>Settings</strong> &gt; <strong>Networking</strong> &gt; Bật <strong>Enable networking/WLAN</strong>.",
+        mobile_step2: "Chọn <strong>Change PRO ad hoc server IP address</strong> và dán: <code style=\"background: var(--bg-peach); padding: 2px 6px; border-radius: 6px; color: var(--primary-coral); word-break: break-all;\">ppsspp.isharoverwhite.com</code>.",
+        mobile_step3: "Tắt <strong>Enable built-in PRO ad hoc server</strong>.",
+        mobile_step4: "Đặt <strong>Port offset = 0</strong>.",
+        pc_title: "Cấu Hình Máy Tính (Windows / macOS)",
+        pc_step1: "Mở PPSSPP, vào <strong>Settings</strong> &gt; <strong>Networking</strong> &gt; Bật <strong>Enable networking/WLAN</strong>.",
+        pc_step2: "Dán Domain Server vào ô <strong>Change PRO ad hoc IP</strong>.",
+        pc_step3: "Tắt <strong>built-in server</strong> và đặt <strong>Port offset = 0</strong>.",
+        pc_step4: "<em>Windows:</em> Cho phép PPSSPP qua Windows Defender Firewall nếu được hỏi.",
+        psp_title: "Cấu Hình Máy PSP Thật (Hardware)",
+        psp_step1: "Tải plugin <strong>Pro Online Client</strong> và chép <code style=\"background: var(--bg-peach); padding: 2px 6px; border-radius: 6px;\">Atpro.prx</code> vào thẻ nhớ PSP.",
+        psp_step2: "Mở file <code style=\"background: var(--bg-peach); padding: 2px 6px; border-radius: 6px;\">server.txt</code>, điền <code style=\"color: var(--primary-coral); word-break: break-all;\">ppsspp.isharoverwhite.com</code>.",
+        psp_step3: "Thêm dòng <code style=\"background: var(--bg-peach); padding: 2px 6px; border-radius: 6px; word-break: break-all;\">ms0:/seplugins/atpro.prx 1</code> vào file game.txt.",
+        psp_step4: "Kết nối PSP vào WiFi (chuẩn bảo mật WPA/WPA2) và mở game.",
+        rooms_title: "Góc Sách & Sảnh Chơi",
+        rooms_empty_title: "Góc chơi hiện đang trống",
+        rooms_empty_desc: "Hãy là người đầu tiên tạo sảnh nhé!",
+        rooms_count: "{count} Phòng",
+        users_count: "{count} Người",
+        footer_credit: "Experience (Đinh Trung Kiên) with Furuhonya (Kani-chan) design.",
+        status_connecting: "Đang kết nối tới server...",
+        status_online: "🟢 Online — <strong>{users}</strong> Khách • <strong>{games}</strong> Game",
+        status_offline: "🟢 Sẵn Sàng (Port 27312)",
+        search_book: "Đang mở sổ tìm kiếm..."
+      },
+      en: {
+        marquee: "🦀 WELCOME TO THE SECONDHAND BOOKSTORE (FURUHONYA) • PLAY MULTIPLAYER PSP ONLINE (TCP 27312) • OFFSET: 0 • FULLY COMPATIBLE WITH REAL PSP • 🦀",
+        hero_title: "<span class=\"salmon\">Multiplayer</span> Lobby<br>For <span class=\"coral\">PSP &amp; PPSSPP</span>",
+        hero_subtitle: "Gentle, relaxing, and smooth connection. Cross-platform support and fully compatible with real PSP hardware.",
+        domain_label: "Server Domain (PRO Adhoc IP)",
+        btn_copy: "<span class=\"material-symbols-outlined\">content_copy</span> COPY DOMAIN",
+        copied: "Copied {label}!",
+        steps_title: "3 Easy Setup Steps",
+        step1_title: "Enable Network",
+        step1_desc: "Go to Settings &gt; Networking in your app.",
+        step1_wlan: "ON",
+        step2_title: "Enter Server",
+        step2_desc: "Paste Domain into Change PRO ad hoc IP.",
+        step2_builtin: "OFF",
+        step3_title: "Port Offset",
+        step3_desc: "Keep offset at 0 for best compatibility.",
+        step3_offset: "0 (Default)",
+        guide_title: "Detailed Guide",
+        tab_mobile: "📱 Mobile",
+        tab_pc: "💻 PC / Mac",
+        tab_psp: "🎮 Real PSP",
+        mobile_title: "Mobile Configuration (Android / iOS)",
+        mobile_step1: "Go to <strong>Settings</strong> &gt; <strong>Networking</strong> &gt; Check <strong>Enable networking/WLAN</strong>.",
+        mobile_step2: "Select <strong>Change PRO ad hoc server IP address</strong> and paste: <code style=\"background: var(--bg-peach); padding: 2px 6px; border-radius: 6px; color: var(--primary-coral); word-break: break-all;\">ppsspp.isharoverwhite.com</code>.",
+        mobile_step3: "Uncheck <strong>Enable built-in PRO ad hoc server</strong>.",
+        mobile_step4: "Set <strong>Port offset = 0</strong>.",
+        pc_title: "PC Configuration (Windows / macOS)",
+        pc_step1: "Open PPSSPP, go to <strong>Settings</strong> &gt; <strong>Networking</strong> &gt; Check <strong>Enable networking/WLAN</strong>.",
+        pc_step2: "Paste Server Domain into <strong>Change PRO ad hoc IP</strong>.",
+        pc_step3: "Uncheck <strong>built-in server</strong> and set <strong>Port offset = 0</strong>.",
+        pc_step4: "<em>Windows:</em> Allow PPSSPP through Windows Defender Firewall if asked.",
+        psp_title: "Real PSP Hardware Configuration",
+        psp_step1: "Download <strong>Pro Online Client</strong> plugin and copy <code style=\"background: var(--bg-peach); padding: 2px 6px; border-radius: 6px;\">Atpro.prx</code> to your PSP memory stick.",
+        psp_step2: "Open <code style=\"background: var(--bg-peach); padding: 2px 6px; border-radius: 6px;\">server.txt</code>, enter <code style=\"color: var(--primary-coral); word-break: break-all;\">ppsspp.isharoverwhite.com</code>.",
+        psp_step3: "Add <code style=\"background: var(--bg-peach); padding: 2px 6px; border-radius: 6px; word-break: break-all;\">ms0:/seplugins/atpro.prx 1</code> to your game.txt.",
+        psp_step4: "Connect PSP to WiFi (WPA/WPA2 security) and launch the game.",
+        rooms_title: "Reading Corner & Game Lobbies",
+        rooms_empty_title: "The lobby is currently empty",
+        rooms_empty_desc: "Be the first to create a room!",
+        rooms_count: "{count} Rooms",
+        users_count: "{count} Players",
+        footer_credit: "Experience (Đinh Trung Kiên) with Furuhonya (Kani-chan) design.",
+        status_connecting: "Connecting to server...",
+        status_online: "🟢 Running Smoothly — <strong>{users}</strong> Players • <strong>{games}</strong> Games",
+        status_offline: "🟢 Ready (Port 27312)",
+        search_book: "Opening search book..."
+      },
+      th: {
+        marquee: "🦀 ยินดีต้อนรับสู่ร้านหนังสือ (FURUHONYA) • เล่น MULTIPLAYER PSP ONLINE (TCP 27312) • OFFSET: 0 • รองรับเครื่อง PSP จริง 100% • 🦀",
+        hero_title: "ล็อบบี้ <span class=\"salmon\">Multiplayer</span><br>สำหรับ <span class=\"coral\">PSP &amp; PPSSPP</span>",
+        hero_subtitle: "การเชื่อมต่อที่นุ่มนวล ผ่อนคลาย และลื่นไหล รองรับข้ามแพลตฟอร์มและ PSP เครื่องจริง",
+        domain_label: "โดเมนเซิร์ฟเวอร์ (PRO Adhoc IP)",
+        btn_copy: "<span class=\"material-symbols-outlined\">content_copy</span> คัดลอกโดเมน",
+        copied: "คัดลอก {label} แล้ว!",
+        steps_title: "3 ขั้นตอนการตั้งค่าง่ายๆ",
+        step1_title: "เปิดเครือข่าย",
+        step1_desc: "ไปที่ Settings &gt; Networking ในแอปของคุณ",
+        step1_wlan: "เปิด (ON)",
+        step2_title: "ใส่เซิร์ฟเวอร์",
+        step2_desc: "วางโดเมนลงใน Change PRO ad hoc IP",
+        step2_builtin: "ปิด (OFF)",
+        step3_title: "Port Offset",
+        step3_desc: "คงค่า offset ไว้ที่ 0 เพื่อการรองรับที่ดีที่สุด",
+        step3_offset: "0 (ค่าเริ่มต้น)",
+        guide_title: "คำแนะนำโดยละเอียด",
+        tab_mobile: "📱 มือถือ",
+        tab_pc: "💻 พีซี / แมค",
+        tab_psp: "🎮 เครื่อง PSP จริง",
+        mobile_title: "การตั้งค่าบนมือถือ (Android / iOS)",
+        mobile_step1: "ไปที่ <strong>Settings</strong> &gt; <strong>Networking</strong> &gt; เลือก <strong>Enable networking/WLAN</strong>.",
+        mobile_step2: "เลือก <strong>Change PRO ad hoc server IP address</strong> แล้ววาง: <code style=\"background: var(--bg-peach); padding: 2px 6px; border-radius: 6px; color: var(--primary-coral); word-break: break-all;\">ppsspp.isharoverwhite.com</code>.",
+        mobile_step3: "ยกเลิกการเลือก <strong>Enable built-in PRO ad hoc server</strong>.",
+        mobile_step4: "ตั้งค่า <strong>Port offset = 0</strong>.",
+        pc_title: "การตั้งค่าพีซี (Windows / macOS)",
+        pc_step1: "เปิด PPSSPP ไปที่ <strong>Settings</strong> &gt; <strong>Networking</strong> &gt; เลือก <strong>Enable networking/WLAN</strong>.",
+        pc_step2: "วางโดเมนเซิร์ฟเวอร์ใน <strong>Change PRO ad hoc IP</strong>.",
+        pc_step3: "ยกเลิกการเลือก <strong>built-in server</strong> และตั้งค่า <strong>Port offset = 0</strong>.",
+        pc_step4: "<em>Windows:</em> อนุญาต PPSSPP ผ่าน Windows Defender Firewall หากถูกถาม",
+        psp_title: "การตั้งค่าฮาร์ดแวร์ PSP จริง",
+        psp_step1: "ดาวน์โหลด <strong>Pro Online Client</strong> และคัดลอก <code style=\"background: var(--bg-peach); padding: 2px 6px; border-radius: 6px;\">Atpro.prx</code> ลงในเมมโมรี่สติ๊ก PSP",
+        psp_step2: "เปิด <code style=\"background: var(--bg-peach); padding: 2px 6px; border-radius: 6px;\">server.txt</code>, กรอก <code style=\"color: var(--primary-coral); word-break: break-all;\">ppsspp.isharoverwhite.com</code>.",
+        psp_step3: "เพิ่ม <code style=\"background: var(--bg-peach); padding: 2px 6px; border-radius: 6px; word-break: break-all;\">ms0:/seplugins/atpro.prx 1</code> ลงใน game.txt",
+        psp_step4: "เชื่อมต่อ PSP กับ WiFi (ความปลอดภัย WPA/WPA2) และเปิดเกม",
+        rooms_title: "มุมอ่านหนังสือ & ล็อบบี้เกม",
+        rooms_empty_title: "ขณะนี้ยังไม่มีห้องว่าง",
+        rooms_empty_desc: "มาเป็นคนแรกที่สร้างห้องกันเถอะ!",
+        rooms_count: "{count} ห้อง",
+        users_count: "{count} คน",
+        footer_credit: "Experience (Đinh Trung Kiên) with Furuhonya (Kani-chan) design.",
+        status_connecting: "กำลังเชื่อมต่อกับเซิร์ฟเวอร์...",
+        status_online: "🟢 ทำงานอย่างราบรื่น — ผู้เล่น <strong>{users}</strong> คน • <strong>{games}</strong> เกม",
+        status_offline: "🟢 พร้อมใช้งาน (Port 27312)",
+        search_book: "กำลังเปิดสมุดค้นหา..."
+      },
+      id: {
+        marquee: "🦀 SELAMAT DATANG DI TOKO BUKU (FURUHONYA) • MAIN MULTIPLAYER PSP ONLINE (TCP 27312) • OFFSET: 0 • KOMPATIBEL PENUH DENGAN PSP ASLI • 🦀",
+        hero_title: "Lobi <span class=\"salmon\">Multiplayer</span><br>Untuk <span class=\"coral\">PSP &amp; PPSSPP</span>",
+        hero_subtitle: "Koneksi lembut, santai, dan mulus. Mendukung lintas platform dan sepenuhnya kompatibel dengan PSP asli.",
+        domain_label: "Domain Server (PRO Adhoc IP)",
+        btn_copy: "<span class=\"material-symbols-outlined\">content_copy</span> SALIN DOMAIN",
+        copied: "{label} disalin!",
+        steps_title: "3 Langkah Pengaturan Mudah",
+        step1_title: "Aktifkan Jaringan",
+        step1_desc: "Buka Settings &gt; Networking di aplikasi Anda.",
+        step1_wlan: "NYALA (ON)",
+        step2_title: "Masukkan Server",
+        step2_desc: "Tempel Domain ke Change PRO ad hoc IP.",
+        step2_builtin: "MATI (OFF)",
+        step3_title: "Port Offset",
+        step3_desc: "Biarkan offset di 0 untuk kompatibilitas terbaik.",
+        step3_offset: "0 (Bawaan)",
+        guide_title: "Panduan Lengkap",
+        tab_mobile: "📱 Ponsel",
+        tab_pc: "💻 PC / Mac",
+        tab_psp: "🎮 PSP Asli",
+        mobile_title: "Pengaturan Ponsel (Android / iOS)",
+        mobile_step1: "Buka <strong>Settings</strong> &gt; <strong>Networking</strong> &gt; Centang <strong>Enable networking/WLAN</strong>.",
+        mobile_step2: "Pilih <strong>Change PRO ad hoc server IP address</strong> dan tempel: <code style=\"background: var(--bg-peach); padding: 2px 6px; border-radius: 6px; color: var(--primary-coral); word-break: break-all;\">ppsspp.isharoverwhite.com</code>.",
+        mobile_step3: "Hapus centang <strong>Enable built-in PRO ad hoc server</strong>.",
+        mobile_step4: "Atur <strong>Port offset = 0</strong>.",
+        pc_title: "Pengaturan PC (Windows / macOS)",
+        pc_step1: "Buka PPSSPP, ke <strong>Settings</strong> &gt; <strong>Networking</strong> &gt; Centang <strong>Enable networking/WLAN</strong>.",
+        pc_step2: "Tempel Domain Server di <strong>Change PRO ad hoc IP</strong>.",
+        pc_step3: "Hapus centang <strong>built-in server</strong> dan atur <strong>Port offset = 0</strong>.",
+        pc_step4: "<em>Windows:</em> Izinkan PPSSPP melalui Windows Defender Firewall jika diminta.",
+        psp_title: "Pengaturan Perangkat Keras PSP Asli",
+        psp_step1: "Unduh plugin <strong>Pro Online Client</strong> dan salin <code style=\"background: var(--bg-peach); padding: 2px 6px; border-radius: 6px;\">Atpro.prx</code> ke memory stick PSP Anda.",
+        psp_step2: "Buka <code style=\"background: var(--bg-peach); padding: 2px 6px; border-radius: 6px;\">server.txt</code>, masukkan <code style=\"color: var(--primary-coral); word-break: break-all;\">ppsspp.isharoverwhite.com</code>.",
+        psp_step3: "Tambahkan <code style=\"background: var(--bg-peach); padding: 2px 6px; border-radius: 6px; word-break: break-all;\">ms0:/seplugins/atpro.prx 1</code> ke game.txt Anda.",
+        psp_step4: "Hubungkan PSP ke WiFi (keamanan WPA/WPA2) dan luncurkan game.",
+        rooms_title: "Pojok Baca & Lobi Game",
+        rooms_empty_title: "Lobi saat ini kosong",
+        rooms_empty_desc: "Jadilah yang pertama membuat ruang!",
+        rooms_count: "{count} Ruangan",
+        users_count: "{count} Pemain",
+        footer_credit: "Experience (Đinh Trung Kiên) with Furuhonya (Kani-chan) design.",
+        status_connecting: "Menghubungkan ke server...",
+        status_online: "🟢 Berjalan Lancar — <strong>{users}</strong> Pemain • <strong>{games}</strong> Game",
+        status_offline: "🟢 Siap (Port 27312)",
+        search_book: "Membuka buku pencarian..."
+      }
+    };
+
+    let currentLang = 'vi';
+
+    function changeLanguage(lang) {
+      if (!i18n[lang]) lang = 'en';
+      currentLang = lang;
+      localStorage.setItem('lang', lang);
+      document.getElementById('lang-select').value = lang;
+      
+      document.documentElement.lang = lang;
+      
+      const elements = document.querySelectorAll('[data-i18n]');
+      elements.forEach(el => {
+        const key = el.getAttribute('data-i18n');
+        if (i18n[lang][key]) {
+          el.innerHTML = i18n[lang][key];
+        }
+      });
+      
+      // trigger a re-render of status and rooms using current data if possible
+      // but fetchServerStatus runs every 5s anyway.
+    }
+
+    async function detectLanguage() {
+      const savedLang = localStorage.getItem('lang');
+      if (savedLang) {
+        changeLanguage(savedLang);
+        return;
+      }
+      
+      try {
+        const res = await fetch('https://get.geojs.io/v1/ip/country.json');
+        if (res.ok) {
+          const data = await res.json();
+          const cc = data.country.toUpperCase();
+          if (cc === 'VN') changeLanguage('vi');
+          else if (cc === 'TH') changeLanguage('th');
+          else if (cc === 'ID') changeLanguage('id');
+          else changeLanguage('en'); // SG, MY, PH, etc.
+          return;
+        }
+      } catch (e) {
+        console.log("IP detection failed, using browser language");
+      }
+      
+      // Fallback to browser language
+      const browserLang = navigator.language.slice(0, 2).toLowerCase();
+      if (['vi', 'th', 'id', 'en'].includes(browserLang)) {
+        changeLanguage(browserLang);
+      } else {
+        changeLanguage('en');
+      }
+    }
+
+    const DOMAIN = 'direct.play.isharoverwhite.com';
+
+    function copyText(text, label) {
+      navigator.clipboard.writeText(text).then(() => {
+        const toast = document.getElementById('toast');
+        document.getElementById('toast-text').innerText = (i18n[currentLang].copied || "Đã sao chép {label}!").replace("{label}", label);
+        toast.classList.add('show');
+        setTimeout(() => { toast.classList.remove('show'); }, 2500);
+      });
+    }
+
+    function switchTab(tabId, el) {
+      document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      document.getElementById(tabId).classList.add('active');
+      el.classList.add('active');
+    }
+
+    async function fetchServerStatus() {
+      try {
+        const res = await fetch(`/api/status`);
+        if (res.ok) {
+          const data = await res.json();
+          
+          const usersText = i18n[currentLang].status_online.replace("{users}", data.usercount).replace("{games}", data.games.length);
+          document.getElementById('server-status-text').innerHTML = usersText;
+          renderRooms(data.games);
+        } else {
+          document.getElementById('server-status-text').innerHTML = i18n[currentLang].status_offline;
+        }
+      } catch (err) {
+        document.getElementById('server-status-text').innerHTML = i18n[currentLang].status_offline;
+      }
+
+    }
+
+    function renderRooms(games) {
+      const container = document.getElementById('rooms-container');
+      if (!games || games.length === 0) {
+        container.innerHTML = `
+          <div class="soft-card room-card" style="padding: 40px 20px;">
+            <div style="font-size: 32px; margin-bottom: 12px; color: var(--primary-coral);">📖</div>
+            <h4 style="font-size: 18px; color: var(--text-dark); margin-bottom: 8px;">${i18n[currentLang].rooms_empty_title}</h4>
+            <p style="font-size: 14px; color: var(--text-muted);">${i18n[currentLang].rooms_empty_desc}</p>
+          </div>
+        `;
+        return;
+      }
+
+      let html = '';
+      games.forEach(g => {
+        
+        html += `
+          <div class="soft-card room-card">
+            <span class="room-badge">${g.id}</span>
+            <div class="room-game-title">${g.name}</div>
+            <div style="display: flex; justify-content: space-between; font-size: 13px; font-weight: 800; color: var(--primary-coral); margin-top: 12px;">
+              <span>${i18n[currentLang].rooms_count.replace('{count}', g.groups.length)}</span>
+              <span>${i18n[currentLang].users_count.replace('{count}', g.usercount)}</span>
+            </div>
+          </div>
+        `;
+
+      });
+      container.innerHTML = html;
+    }
+
+    detectLanguage().then(() => fetchServerStatus());
+    setInterval(fetchServerStatus, 5000);
+  </script>
+</body>
+</html>

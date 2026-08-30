@@ -65,6 +65,9 @@ func main() {
 	// Start JSON HTTP API
 	startHTTPAPI(serverState)
 
+	// Start Public Welcome WebUI on Port 80
+	startWelcomeServer(serverState)
+
 	// Start UDP Admin listener
 	go startAdminUDP(serverState)
 

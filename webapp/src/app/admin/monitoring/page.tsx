@@ -5,6 +5,9 @@ export const metadata = {
   title: 'Infrastructure Monitoring | Admin Dashboard',
 };
 
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 export default async function MonitoringPage() {
   const snapshotsResult = await getPerformanceSnapshots(50);
   const snapshots = snapshotsResult.success ? snapshotsResult.snapshots : [];

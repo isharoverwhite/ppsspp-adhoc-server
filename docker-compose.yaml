@@ -2,9 +2,13 @@ version: '3.8'
 
 services:
   ppsspp-adhoc:
-    image: ghcr.io/isharoverwhite/ppsspp-adhoc-server:latest
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: ppsspp-adhoc:latest
     container_name: ppsspp-adhoc
     ports:
+      - "80:80"
       - "27312:27312"
       - "3000:3000"
     environment:

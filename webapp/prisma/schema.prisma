@@ -35,10 +35,10 @@ model Ban {
 
 model PlayerHistory {
   id        Int       @id @default(autoincrement())
-  mac       String
-  ip        String
-  name      String
-  game      String
+  mac       String?
+  ip        String?
+  name      String?
+  game      String?
   joinedAt  DateTime  @default(now())
   leftAt    DateTime?
 }
@@ -74,11 +74,11 @@ model IPLocation {
 }
 
 model ChatMessage {
-  id        Int      @id @default(autoincrement())
-  mac       String
-  name      String
-  game      String
-  group     String
-  message   String
-  createdAt DateTime @default(now())
+  id        Int       @id @default(autoincrement())
+  mac       String?
+  name      String?
+  game      String?
+  group     String?
+  message   String?
+  createdAt DateTime? @default(now())
 }

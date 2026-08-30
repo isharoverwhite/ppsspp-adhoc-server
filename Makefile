@@ -1,70 +1,39 @@
-CC = gcc
-SRC_DIR = ./src/
-CFLAGS = -fpack-struct -I. -I$(SRC_DIR)
-LIBS = -lsqlite3 -lpthread
+# PPSSPP Ad-hoc Server (Go Native & Next.js Webapp)
 
-OS := $(shell uname -s)
-ifeq ($(OS),Darwin)
-    CFLAGS += -I/opt/homebrew/opt/sqlite/include -I/usr/local/opt/sqlite/include
-    LIBS += -L/opt/homebrew/opt/sqlite/lib -L/usr/local/opt/sqlite/lib
-endif
-
-OBJ = main.o user.o status.o http_server.o
+SERVER_DIR = ./src
+WEBAPP_DIR = ./webapp
 TARGET = AdhocServer
 
-.PHONY: all clean setup install uninstall
+.PHONY: all server webapp clean setup test install uninstall
 
-all: $(TARGET)
+all: server webapp
 
-%.o: $(SRC_DIR)%.c
-	$(CC) -c -o $@ $< $(CFLAGS)
+server: $(TARGET)
 
-$(TARGET): $(OBJ)
-	$(CC) -o $@ $^ $(LIBS) $(CFLAGS)
+$(TARGET):
+	@echo "Building Go AdhocServer..."
+	cd $(SERVER_DIR) && go build -ldflags="-w -s" -o ../$(TARGET) .
 
-clean:
-	rm -rf *.o *~ $(TARGET)
+webapp:
+	@echo "Building Next.js Webapp..."
+	cd $(WEBAPP_DIR) && npm run build
+
+test: server
+	@echo "Running test suite..."
+	./tests/python/run_tests.sh
 
 setup:
 	chmod +x setup.sh
 	./setup.sh
 
-install: all
+install: server webapp
 	@echo "Installing AdhocServer to /usr/local/bin..."
 	install -m 755 $(TARGET) /usr/local/bin/$(TARGET)
-	
-	@echo "Installing Webapp to /opt/adhoc-server..."
-	mkdir -p /opt/adhoc-server
-	touch database.db
-	cp -r webapp database.db Makefile setup.sh /opt/adhoc-server/
-	
-	@echo "Setting up Node.js dependencies for Webapp..."
-	cd /opt/adhoc-server/webapp && npm install --legacy-peer-deps && npx prisma db push && npm run build
-	
-	@echo "Installing Systemd Services..."
-	install -m 644 adhoc-server.service /etc/systemd/system/
-	install -m 644 adhoc-webapp.service /etc/systemd/system/
-	
-	systemctl daemon-reload
-	systemctl enable adhoc-server.service
-	systemctl enable adhoc-webapp.service
-	systemctl restart adhoc-server.service
-	systemctl restart adhoc-webapp.service
-	
-	@echo "Installation complete! Services are running in the background."
+	@echo "Installing Webapp to /opt/ppsspp-adhoc-server..."
+	mkdir -p /opt/ppsspp-adhoc-server/data
+	cp -r $(WEBAPP_DIR) /opt/ppsspp-adhoc-server/
+	install -m 755 $(SERVER_DIR)/cli.sh /usr/local/bin/ppsspp
 
-uninstall:
-	@echo "Stopping and removing services..."
-	-systemctl stop adhoc-server.service
-	-systemctl stop adhoc-webapp.service
-	-systemctl disable adhoc-server.service
-	-systemctl disable adhoc-webapp.service
-	rm -f /etc/systemd/system/adhoc-server.service
-	rm -f /etc/systemd/system/adhoc-webapp.service
-	systemctl daemon-reload
-	
-	@echo "Removing binaries and webapp..."
-	rm -f /usr/local/bin/$(TARGET)
-	rm -rf /opt/adhoc-server
-	
-	@echo "Uninstall complete. Note: /etc/adhoc-server config was left intact for backups."
+clean:
+	@echo "Cleaning build artifacts..."
+	rm -rf $(TARGET) *.o *.log
