@@ -57,7 +57,7 @@
       {
         "@type": "HowTo",
         "name": "Hướng dẫn kết nối máy chủ PPSSPP Ad-Hoc Multiplayer",
-        "description": "Các bước thiết lập IP và port để chơi PSP online cùng bạn bè.",
+        "description": "Các bước thiết lập địa chỉ máy chủ để chơi PSP online cùng bạn bè.",
         "step": [
           {
             "@type": "HowToStep",
@@ -67,12 +67,12 @@
           {
             "@type": "HowToStep",
             "name": "Điền địa chỉ IP máy chủ",
-            "text": "Nhập địa chỉ máy chủ: ppsspp.isharoverwhite.com hoặc 192.168.1.64 nếu cùng mạng LAN."
+            "text": "Nhập địa chỉ máy chủ: direct.play.isharoverwhite.com."
           },
           {
             "@type": "HowToStep",
             "name": "Thiết lập Port offset",
-            "text": "Đặt Port Offset bằng 0 và Port kết nối 27312."
+            "text": "Đặt Port Offset bằng 0."
           }
         ]
       }
@@ -590,30 +590,39 @@
       padding: 22px 18px;
       text-align: center;
       border: 2px solid #F6EDEA;
-      cursor: pointer;
+      background: var(--card-bg);
+      border-radius: 28px;
+      transition: all 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+      position: relative;
     }
     .step-card:hover {
       transform: translateY(-8px) scale(1.02);
-      box-shadow: 0 20px 40px rgba(255, 123, 137, 0.16);
+      box-shadow: 0 20px 40px rgba(255, 123, 137, 0.18);
       border-color: var(--primary-salmon);
+      background: #FFFFFF;
     }
     .step-card:hover .step-number {
-      transform: rotate(8deg) scale(1.15);
+      transform: rotate(8deg) scale(1.18);
       box-shadow: 0 10px 24px rgba(255, 123, 137, 0.5);
-      background: var(--primary-coral);
+      background: linear-gradient(135deg, var(--primary-salmon) 0%, var(--primary-coral) 100%);
+    }
+    .step-card:hover .step-title {
+      color: #FF5A6D;
+      transform: translateY(-1px);
     }
     .step-card:hover .setting-pill {
-      background: #FFFFFF;
+      background: #FFFDFD;
       border-color: var(--primary-salmon);
-      box-shadow: 0 6px 16px rgba(255, 165, 153, 0.15);
+      box-shadow: 0 6px 18px rgba(255, 165, 153, 0.18);
+      transform: translateY(-2px);
     }
     @media (min-width: 768px) {
-      .step-card { padding: 32px 24px; }
+      .step-card { padding: 32px 24px; border-radius: 36px; }
     }
 
     .step-number {
-      width: 46px;
-      height: 46px;
+      width: 48px;
+      height: 48px;
       background: var(--primary-salmon);
       color: #FFFFFF;
       border-radius: 16px;
@@ -622,24 +631,21 @@
       align-items: center;
       justify-content: center;
       font-family: 'Nunito', sans-serif;
-      font-size: 20px;
+      font-size: 22px;
       font-weight: 900;
       margin: 0 auto 14px;
       box-shadow: 0 6px 16px rgba(255, 165, 153, 0.4);
-      transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+      transition: all 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
     }
     @media (min-width: 768px) {
-      .step-number { width: 52px; height: 52px; font-size: 24px; margin-bottom: 18px; }
+      .step-number { width: 54px; height: 54px; font-size: 26px; margin-bottom: 18px; }
     }
 
     .step-title {
       font-size: 18px;
       margin-bottom: 8px;
       color: var(--primary-coral);
-      transition: color 0.2s;
-    }
-    .step-card:hover .step-title {
-      color: #FF5A6D;
+      transition: all 0.25s ease;
     }
     @media (min-width: 768px) {
       .step-title { font-size: 20px; margin-bottom: 10px; }
@@ -948,7 +954,7 @@
 
   <div class="announcement-bar">
     <div class="marquee-content" data-i18n="marquee">
-      🦀 CHÀO MỪNG ĐẾN VỚI TIỆM SÁCH CŨ (FURUHONYA) • CHƠI MULTIPLAYER PSP ONLINE (TCP 27312) • OFFSET: 0 • TƯƠNG THÍCH HOÀN TOÀN MÁY PSP THỰC • 🦀 CHÀO MỪNG ĐẾN VỚI TIỆM SÁCH CŨ
+      🦀 CHÀO MỪNG ĐẾN VỚI TIỆM SÁCH CŨ (FURUHONYA) • CHƠI MULTIPLAYER PSP ONLINE • OFFSET: 0 • TƯƠNG THÍCH HOÀN TOÀN MÁY PSP THỰC • 🦀 CHÀO MỪNG ĐẾN VỚI TIỆM SÁCH CŨ
     </div>
   </div>
 
@@ -1004,13 +1010,8 @@
         </div>
 
         <div class="quick-params">
-          <div class="param-badge" onclick="copyText('27312', 'Port')" title="Nhấp để sao chép Port">
-            <span>PORT:</span> <span class="val">27312</span>
-            <span class="material-symbols-outlined" style="font-size: 15px; color: var(--text-muted);">content_copy</span>
-          </div>
-          <div class="param-badge" onclick="copyText('0', 'Port Offset')" title="Nhấp để sao chép Offset">
-            <span>OFFSET:</span> <span class="val">0</span>
-            <span class="material-symbols-outlined" style="font-size: 15px; color: var(--text-muted);">content_copy</span>
+          <div class="param-badge">
+            <span>PORT OFFSET:</span> <span class="val">0</span>
           </div>
         </div>
       </div>
@@ -1022,7 +1023,7 @@
       </div>
 
       <div class="steps-grid">
-        <div class="soft-card step-card" onclick="copyText('Enable WLAN', 'WLAN')">
+        <div class="soft-card step-card">
           <div class="step-number">1</div>
           <h3 class="step-title" data-i18n="step1_title">Bật Mạng</h3>
           <p class="step-desc" data-i18n="step1_desc">Vào Settings &gt; Networking trong cài đặt.</p>
@@ -1034,7 +1035,7 @@
           </div>
         </div>
 
-        <div class="soft-card step-card" onclick="copyText('direct.play.isharoverwhite.com', 'Domain')">
+        <div class="soft-card step-card">
           <div class="step-number">2</div>
           <h3 class="step-title" data-i18n="step2_title">Nhập Server</h3>
           <p class="step-desc" data-i18n="step2_desc">Điền Domain vào ô Change PRO ad hoc IP.</p>
@@ -1046,7 +1047,7 @@
           </div>
         </div>
 
-        <div class="soft-card step-card" onclick="copyText('0', 'Port Offset')">
+        <div class="soft-card step-card">
           <div class="step-number">3</div>
           <h3 class="step-title" data-i18n="step3_title">Port Offset</h3>
           <p class="step-desc" data-i18n="step3_desc">Giữ offset ở mức 0 để tương thích nhất.</p>
@@ -1141,7 +1142,7 @@
 
     const i18n = {
       vi: {
-        marquee: "🦀 CHÀO MỪNG ĐẾN VỚI TIỆM SÁCH CŨ (FURUHONYA) • CHƠI MULTIPLAYER PSP ONLINE (TCP 27312) • OFFSET: 0 • TƯƠNG THÍCH HOÀN TOÀN MÁY PSP THỰC • 🦀 CHÀO MỪNG ĐẾN VỚI TIỆM SÁCH CŨ",
+        marquee: "🦀 CHÀO MỪNG ĐẾN VỚI TIỆM SÁCH CŨ (FURUHONYA) • CHƠI MULTIPLAYER PSP ONLINE • OFFSET: 0 • TƯƠNG THÍCH HOÀN TOÀN MÁY PSP THỰC • 🦀 CHÀO MỪNG ĐẾN VỚI TIỆM SÁCH CŨ",
         hero_title: "Sảnh Chơi <span class=\"salmon\">Multiplayer</span><br>Dành Cho <span class=\"coral\">PSP &amp; PPSSPP</span>",
         hero_subtitle: "Kết nối dịu êm, thư giãn và mượt mà. Hỗ trợ đa nền tảng và tương thích hoàn toàn với máy PSP thực.",
         domain_label: "Server Domain (PRO Adhoc IP)",
@@ -1184,11 +1185,11 @@
         footer_credit: "Experience (Đinh Trung Kiên) with Furuhonya (Kani-chan) design.",
         status_connecting: "Đang kết nối tới server...",
         status_online: "🟢 Online — <strong>{users}</strong> Khách • <strong>{games}</strong> Game",
-        status_offline: "🟢 Sẵn Sàng (Port 27312)",
+        status_offline: "🟢 Sẵn Sàng",
         search_book: "Đang mở sổ tìm kiếm..."
       },
       en: {
-        marquee: "🦀 WELCOME TO THE SECONDHAND BOOKSTORE (FURUHONYA) • PLAY MULTIPLAYER PSP ONLINE (TCP 27312) • OFFSET: 0 • FULLY COMPATIBLE WITH REAL PSP • 🦀",
+        marquee: "🦀 WELCOME TO THE SECONDHAND BOOKSTORE (FURUHONYA) • PLAY MULTIPLAYER PSP ONLINE • OFFSET: 0 • FULLY COMPATIBLE WITH REAL PSP • 🦀",
         hero_title: "<span class=\"salmon\">Multiplayer</span> Lobby<br>For <span class=\"coral\">PSP &amp; PPSSPP</span>",
         hero_subtitle: "Gentle, relaxing, and smooth connection. Cross-platform support and fully compatible with real PSP hardware.",
         domain_label: "Server Domain (PRO Adhoc IP)",
@@ -1231,11 +1232,11 @@
         footer_credit: "Experience (Đinh Trung Kiên) with Furuhonya (Kani-chan) design.",
         status_connecting: "Connecting to server...",
         status_online: "🟢 Running Smoothly — <strong>{users}</strong> Players • <strong>{games}</strong> Games",
-        status_offline: "🟢 Ready (Port 27312)",
+        status_offline: "🟢 Ready",
         search_book: "Opening search book..."
       },
       th: {
-        marquee: "🦀 ยินดีต้อนรับสู่ร้านหนังสือ (FURUHONYA) • เล่น MULTIPLAYER PSP ONLINE (TCP 27312) • OFFSET: 0 • รองรับเครื่อง PSP จริง 100% • 🦀",
+        marquee: "🦀 ยินดีต้อนรับสู่ร้านหนังสือ (FURUHONYA) • เล่น MULTIPLAYER PSP ONLINE • OFFSET: 0 • รองรับเครื่อง PSP จริง 100% • 🦀",
         hero_title: "ล็อบบี้ <span class=\"salmon\">Multiplayer</span><br>สำหรับ <span class=\"coral\">PSP &amp; PPSSPP</span>",
         hero_subtitle: "การเชื่อมต่อที่นุ่มนวล ผ่อนคลาย และลื่นไหล รองรับข้ามแพลตฟอร์มและ PSP เครื่องจริง",
         domain_label: "โดเมนเซิร์ฟเวอร์ (PRO Adhoc IP)",
@@ -1278,11 +1279,11 @@
         footer_credit: "Experience (Đinh Trung Kiên) with Furuhonya (Kani-chan) design.",
         status_connecting: "กำลังเชื่อมต่อกับเซิร์ฟเวอร์...",
         status_online: "🟢 ทำงานอย่างราบรื่น — ผู้เล่น <strong>{users}</strong> คน • <strong>{games}</strong> เกม",
-        status_offline: "🟢 พร้อมใช้งาน (Port 27312)",
+        status_offline: "🟢 พร้อมใช้งาน",
         search_book: "กำลังเปิดสมุดค้นหา..."
       },
       id: {
-        marquee: "🦀 SELAMAT DATANG DI TOKO BUKU (FURUHONYA) • MAIN MULTIPLAYER PSP ONLINE (TCP 27312) • OFFSET: 0 • KOMPATIBEL PENUH DENGAN PSP ASLI • 🦀",
+        marquee: "🦀 SELAMAT DATANG DI TOKO BUKU (FURUHONYA) • MAIN MULTIPLAYER PSP ONLINE • OFFSET: 0 • KOMPATIBEL PENUH DENGAN PSP ASLI • 🦀",
         hero_title: "Lobi <span class=\"salmon\">Multiplayer</span><br>Untuk <span class=\"coral\">PSP &amp; PPSSPP</span>",
         hero_subtitle: "Koneksi lembut, santai, dan mulus. Mendukung lintas platform dan sepenuhnya kompatibel dengan PSP asli.",
         domain_label: "Domain Server (PRO Adhoc IP)",
@@ -1325,7 +1326,7 @@
         footer_credit: "Experience (Đinh Trung Kiên) with Furuhonya (Kani-chan) design.",
         status_connecting: "Menghubungkan ke server...",
         status_online: "🟢 Berjalan Lancar — <strong>{users}</strong> Pemain • <strong>{games}</strong> Game",
-        status_offline: "🟢 Siap (Port 27312)",
+        status_offline: "🟢 Siap",
         search_book: "Membuka buku pencarian..."
       }
     };
