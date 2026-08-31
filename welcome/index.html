@@ -418,9 +418,10 @@
     .live-dot {
       width: 10px;
       height: 10px;
-      background: #4ADE80;
       border-radius: 50%;
       position: relative;
+      flex-shrink: 0;
+      transition: background-color 0.3s ease, color 0.3s ease;
     }
     .live-dot::after {
       content: '';
@@ -430,8 +431,20 @@
       right: -3px;
       bottom: -3px;
       border-radius: 50%;
-      border: 2px solid #4ADE80;
+      border: 2px solid currentColor;
       animation: radarPulse 2s cubic-bezier(0.25, 0.46, 0.45, 0.94) infinite;
+    }
+    .live-dot.online {
+      background-color: #22C55E;
+      color: #22C55E;
+    }
+    .live-dot.connecting {
+      background-color: #EAB308;
+      color: #EAB308;
+    }
+    .live-dot.offline {
+      background-color: #EF4444;
+      color: #EF4444;
     }
     @keyframes radarPulse {
       0% { transform: scale(0.8); opacity: 0.9; }
@@ -988,7 +1001,7 @@
       </p>
 
       <div class="status-pill" onclick="fetchServerStatus()" title="Nhấp để làm mới trạng thái máy chủ">
-        <span class="live-dot"></span>
+        <span class="live-dot connecting" id="status-dot"></span>
         <span id="server-status-text" data-i18n="status_connecting">Đang kết nối tới server...</span>
       </div>
 
@@ -1184,8 +1197,8 @@
         users_count: "{count} Người",
         footer_credit: "Experience (Đinh Trung Kiên) with Furuhonya (Kani-chan) design.",
         status_connecting: "Đang kết nối tới server...",
-        status_online: "🟢 Online — <strong>{users}</strong> Khách • <strong>{games}</strong> Game",
-        status_offline: "🟢 Sẵn Sàng",
+        status_online: "Online — <strong>{users}</strong> Khách • <strong>{games}</strong> Game",
+        status_offline: "Mất kết nối máy chủ",
         search_book: "Đang mở sổ tìm kiếm..."
       },
       en: {
@@ -1231,8 +1244,8 @@
         users_count: "{count} Players",
         footer_credit: "Experience (Đinh Trung Kiên) with Furuhonya (Kani-chan) design.",
         status_connecting: "Connecting to server...",
-        status_online: "🟢 Running Smoothly — <strong>{users}</strong> Players • <strong>{games}</strong> Games",
-        status_offline: "🟢 Ready",
+        status_online: "Running Smoothly — <strong>{users}</strong> Players • <strong>{games}</strong> Games",
+        status_offline: "Server Offline",
         search_book: "Opening search book..."
       },
       th: {
@@ -1278,8 +1291,8 @@
         users_count: "{count} คน",
         footer_credit: "Experience (Đinh Trung Kiên) with Furuhonya (Kani-chan) design.",
         status_connecting: "กำลังเชื่อมต่อกับเซิร์ฟเวอร์...",
-        status_online: "🟢 ทำงานอย่างราบรื่น — ผู้เล่น <strong>{users}</strong> คน • <strong>{games}</strong> เกม",
-        status_offline: "🟢 พร้อมใช้งาน",
+        status_online: "ทำงานอย่างราบรื่น — ผู้เล่น <strong>{users}</strong> คน • <strong>{games}</strong> เกม",
+        status_offline: "ออฟไลน์",
         search_book: "กำลังเปิดสมุดค้นหา..."
       },
       id: {
@@ -1325,8 +1338,8 @@
         users_count: "{count} Pemain",
         footer_credit: "Experience (Đinh Trung Kiên) with Furuhonya (Kani-chan) design.",
         status_connecting: "Menghubungkan ke server...",
-        status_online: "🟢 Berjalan Lancar — <strong>{users}</strong> Pemain • <strong>{games}</strong> Game",
-        status_offline: "🟢 Siap",
+        status_online: "Berjalan Lancar — <strong>{users}</strong> Pemain • <strong>{games}</strong> Game",
+        status_offline: "Server Offline",
         search_book: "Membuka buku pencarian..."
       }
     };
@@ -1349,8 +1362,7 @@
         }
       });
       
-      // trigger a re-render of status and rooms using current data if possible
-      // but fetchServerStatus runs every 5s anyway.
+      fetchServerStatus();
     }
 
     async function detectLanguage() {
@@ -1403,21 +1415,25 @@
     }
 
     async function fetchServerStatus() {
+      const dot = document.getElementById('status-dot');
+      const text = document.getElementById('server-status-text');
       try {
         const res = await fetch(`/api/status`);
         if (res.ok) {
           const data = await res.json();
           
           const usersText = i18n[currentLang].status_online.replace("{users}", data.usercount).replace("{games}", data.games.length);
-          document.getElementById('server-status-text').innerHTML = usersText;
+          if (text) text.innerHTML = usersText;
+          if (dot) dot.className = 'live-dot online';
           renderRooms(data.games);
         } else {
-          document.getElementById('server-status-text').innerHTML = i18n[currentLang].status_offline;
+          if (text) text.innerHTML = i18n[currentLang].status_offline;
+          if (dot) dot.className = 'live-dot offline';
         }
       } catch (err) {
-        document.getElementById('server-status-text').innerHTML = i18n[currentLang].status_offline;
+        if (text) text.innerHTML = i18n[currentLang].status_offline;
+        if (dot) dot.className = 'live-dot offline';
       }
-
     }
 
     function renderRooms(games) {
