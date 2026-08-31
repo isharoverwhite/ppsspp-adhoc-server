@@ -141,16 +141,16 @@
 
     /* Marquee - The Crab Headband */
     .announcement-bar {
-      background: var(--primary-coral);
+      background: linear-gradient(90deg, var(--primary-coral) 0%, #FF929F 50%, var(--primary-coral) 100%);
       color: #FFFFFF;
       padding: 10px 0;
       overflow: hidden;
       white-space: nowrap;
       position: relative;
-      font-weight: 700;
+      font-weight: 800;
       font-size: 13px;
       letter-spacing: 0.5px;
-      box-shadow: 0 2px 10px rgba(255, 123, 137, 0.2);
+      box-shadow: 0 3px 12px rgba(255, 123, 137, 0.25);
     }
     @media (min-width: 768px) {
       .announcement-bar { padding: 12px 0; font-size: 15px; }
@@ -165,17 +165,23 @@
       100% { transform: translateX(-50%); }
     }
 
-    /* Common Card Styles - Soft and Book-like */
+    /* Common Card Styles - Soft, Interactive & Lively */
     .soft-card {
       background: var(--card-bg);
       border-radius: 24px;
       box-shadow: var(--shadow-soft);
       border: 2px solid #FFF5F2;
-      transition: all 0.3s ease;
+      transition: all 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+      position: relative;
+    }
+    .soft-card:hover {
+      transform: translateY(-5px) scale(1.01);
+      box-shadow: 0 20px 45px rgba(255, 123, 137, 0.16);
+      border-color: #FFE6E0;
     }
     @media (min-width: 768px) {
       .soft-card { border-radius: 36px; border-width: 3px; }
-      .soft-card:hover { transform: translateY(-4px); box-shadow: var(--shadow-hover); }
+      .soft-card:hover { transform: translateY(-7px) scale(1.015); box-shadow: 0 24px 50px rgba(255, 123, 137, 0.2); }
     }
 
     /* Buttons */
@@ -192,143 +198,221 @@
       cursor: pointer;
       border: none;
       width: 100%;
-      transition: all 0.2s ease;
+      transition: all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+      user-select: none;
     }
     @media (min-width: 768px) {
       .pill-btn { padding: 16px 36px; font-size: 17px; width: auto; gap: 10px; }
-      .pill-btn:hover { transform: translateY(-2px) scale(1.02); }
-      .pill-btn:active { transform: translateY(1px) scale(0.98); }
+    }
+    .pill-btn:active {
+      transform: scale(0.95) !important;
     }
 
     .pill-btn-coral { 
-      background: var(--primary-coral); 
+      background: linear-gradient(135deg, var(--primary-coral) 0%, #FF929F 100%);
       color: #FFFFFF; 
-      box-shadow: 0 8px 20px rgba(255, 123, 137, 0.35);
+      box-shadow: 0 8px 22px rgba(255, 123, 137, 0.35);
+      position: relative;
+      overflow: hidden;
+    }
+    .pill-btn-coral::after {
+      content: '';
+      position: absolute;
+      top: -50%;
+      left: -50%;
+      width: 200%;
+      height: 200%;
+      background: linear-gradient(60deg, transparent, rgba(255, 255, 255, 0.35), transparent);
+      transform: rotate(25deg) translateY(-100%);
+      transition: transform 0.6s ease;
+    }
+    .pill-btn-coral:hover {
+      background: linear-gradient(135deg, #FF6676 0%, #FF8594 100%);
+      box-shadow: 0 12px 30px rgba(255, 123, 137, 0.48);
+      transform: translateY(-3px) scale(1.02);
+    }
+    .pill-btn-coral:hover::after {
+      transform: rotate(25deg) translateY(100%);
+    }
+
+    /* Header & Navigation - Mobile-First No-Overlap Layout */
+    header {
+      padding: 16px 0 12px;
+      display: flex;
+      justify-content: center;
+      width: 100%;
     }
     @media (min-width: 768px) {
-      .pill-btn-coral:hover {
-        background: var(--primary-coral-hover);
-        box-shadow: 0 12px 28px rgba(255, 123, 137, 0.45);
+      header { padding: 32px 0 16px; }
+    }
+
+    .header-content {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      width: 100%;
+      gap: 8px;
+    }
+    @media (min-width: 768px) {
+      .header-content {
+        justify-content: center;
+        position: relative;
       }
     }
 
-    
-    /* Language Switcher */
-    .header-content {
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      position: relative;
-      width: 100%;
-    }
-    .lang-switcher {
-      position: absolute;
-      right: 0;
-      top: 50%;
-      transform: translateY(-50%);
-    }
-    #lang-select {
-      background: var(--bg-paper);
-      border: 1px solid #EFE4DF;
-      color: var(--text-dark);
-      font-family: 'Nunito', sans-serif;
-      font-weight: 700;
-      padding: 6px 12px;
-      border-radius: 12px;
-      outline: none;
-      cursor: pointer;
-      box-shadow: var(--shadow-sm);
-    }
-
-    /* Header */
-    header {
-      padding: 24px 0 16px;
-      display: flex;
-      justify-content: center;
-    }
-    @media (min-width: 768px) {
-      header { padding: 40px 0 20px; }
-    }
-
     .logo-badge {
-      display: flex;
-      flex-direction: column;
+      display: inline-flex;
+      flex-direction: row;
       align-items: center;
+      gap: 6px;
       text-decoration: none;
       background: #FFFFFF;
-      padding: 8px 18px;
+      padding: 6px 14px;
       border-radius: 999px;
-      box-shadow: var(--shadow-sm);
+      box-shadow: 0 4px 14px rgba(255, 123, 137, 0.12);
+      border: 1.5px solid #FFF0EC;
+      min-width: 0;
+      transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+      cursor: pointer;
+    }
+    .logo-badge:hover {
+      transform: translateY(-2px) scale(1.02);
+      box-shadow: 0 8px 22px rgba(255, 123, 137, 0.22);
+      border-color: var(--primary-salmon);
+    }
+    .logo-badge:active {
+      transform: scale(0.96);
+    }
+    .logo-badge:hover .logo-img {
+      animation: crabWiggle 0.5s ease-in-out infinite alternate;
+    }
+    @keyframes crabWiggle {
+      0% { transform: rotate(-10deg) scale(1.1); }
+      100% { transform: rotate(10deg) scale(1.1); }
     }
     @media (min-width: 768px) {
-      .logo-badge { padding: 12px 28px; }
+      .logo-badge { padding: 10px 24px; gap: 10px; }
     }
 
     .logo-text {
       font-family: 'Nunito', sans-serif;
-      font-size: 15px;
+      font-size: 13px;
       font-weight: 900;
       color: var(--primary-coral);
-      letter-spacing: 0.5px;
+      letter-spacing: 0.2px;
       white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
     @media (min-width: 480px) {
-      .logo-text { font-size: 18px; }
+      .logo-text { font-size: 16px; letter-spacing: 0.5px; }
     }
     @media (min-width: 768px) {
-      .logo-text { font-size: 22px; letter-spacing: 1px; }
+      .logo-text { font-size: 20px; letter-spacing: 0.8px; }
+    }
+
+    /* Language Switcher */
+    .lang-switcher {
+      flex-shrink: 0;
+    }
+    @media (min-width: 768px) {
+      .lang-switcher {
+        position: absolute;
+        right: 0;
+        top: 50%;
+        transform: translateY(-50%);
+      }
+    }
+
+    #lang-select {
+      background: #FFFFFF;
+      border: 1.5px solid #F3E5E0;
+      color: var(--text-dark);
+      font-family: 'Nunito', sans-serif;
+      font-weight: 800;
+      font-size: 13px;
+      padding: 7px 12px;
+      border-radius: 999px;
+      outline: none;
+      cursor: pointer;
+      box-shadow: 0 4px 12px rgba(255, 123, 137, 0.1);
+      transition: all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+    #lang-select:hover {
+      transform: translateY(-2px) scale(1.04);
+      border-color: var(--primary-coral);
+      box-shadow: 0 8px 20px rgba(255, 123, 137, 0.25);
+    }
+    #lang-select:focus {
+      border-color: var(--primary-coral);
+      box-shadow: 0 0 0 3px rgba(255, 123, 137, 0.2);
     }
 
     /* Hero Section */
     .hero {
-      padding: 24px 0 40px;
+      padding: 16px 0 36px;
       text-align: center;
     }
     @media (min-width: 768px) {
-      .hero { padding: 30px 0 60px; }
+      .hero { padding: 24px 0 50px; }
     }
 
     .hero-title {
-      font-size: 30px;
+      font-size: 28px;
       line-height: 1.35;
       margin-bottom: 12px;
       color: var(--text-dark);
+      transition: transform 0.3s ease;
+    }
+    .hero-title:hover {
+      transform: scale(1.01);
     }
     .hero-title span.salmon { color: var(--primary-salmon); }
     .hero-title span.coral { color: var(--primary-coral); }
     
     @media (min-width: 768px) {
-      .hero-title { font-size: 44px; margin-bottom: 16px; }
+      .hero-title { font-size: 42px; margin-bottom: 16px; }
     }
 
     .hero-subtitle {
-      font-size: 15px;
+      font-size: 14px;
       color: var(--text-muted);
-      margin: 0 auto 24px;
+      margin: 0 auto 20px;
       font-weight: 600;
       max-width: 620px;
+      line-height: 1.6;
     }
     @media (min-width: 768px) {
-      .hero-subtitle { font-size: 18px; margin-bottom: 36px; }
+      .hero-subtitle { font-size: 17px; margin-bottom: 30px; }
     }
 
-    /* Live Server Status Badge */
+    /* Live Server Status Badge - Interactive Radar Effect */
     .status-pill {
       display: inline-flex;
       align-items: center;
-      gap: 10px;
+      gap: 8px;
       background: #FFFFFF;
       border-radius: 999px;
-      padding: 8px 20px;
-      box-shadow: var(--shadow-sm);
-      margin-bottom: 32px;
+      padding: 8px 18px;
+      box-shadow: 0 4px 16px rgba(255, 165, 153, 0.15);
+      margin-bottom: 28px;
       font-size: 13px;
-      font-weight: 700;
+      font-weight: 800;
       color: var(--text-dark);
-      border: 1px solid var(--bg-peach);
+      border: 1.5px solid var(--bg-peach);
+      cursor: pointer;
+      transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+    .status-pill:hover {
+      transform: translateY(-3px) scale(1.03);
+      box-shadow: 0 10px 25px rgba(74, 222, 128, 0.25);
+      border-color: #4ADE80;
+    }
+    .status-pill:active {
+      transform: scale(0.97);
     }
     @media (min-width: 768px) {
-      .status-pill { padding: 10px 28px; font-size: 15px; margin-bottom: 40px; gap: 12px; }
+      .status-pill { padding: 10px 26px; font-size: 14px; margin-bottom: 36px; gap: 10px; }
     }
 
     .live-dot {
@@ -336,23 +420,36 @@
       height: 10px;
       background: #4ADE80;
       border-radius: 50%;
-      box-shadow: 0 0 0 3px rgba(74, 222, 128, 0.2);
-      animation: pulse 2s infinite;
+      position: relative;
     }
-    @media (min-width: 768px) {
-      .live-dot { width: 12px; height: 12px; box-shadow: 0 0 0 4px rgba(74, 222, 128, 0.2); }
+    .live-dot::after {
+      content: '';
+      position: absolute;
+      top: -3px;
+      left: -3px;
+      right: -3px;
+      bottom: -3px;
+      border-radius: 50%;
+      border: 2px solid #4ADE80;
+      animation: radarPulse 2s cubic-bezier(0.25, 0.46, 0.45, 0.94) infinite;
+    }
+    @keyframes radarPulse {
+      0% { transform: scale(0.8); opacity: 0.9; }
+      100% { transform: scale(2.2); opacity: 0; }
     }
 
     /* Centerpiece Domain Card - Bookish & Peach */
     .domain-centerpiece {
       background: linear-gradient(145deg, #FFFFFF 0%, var(--bg-peach) 100%);
-      padding: 30px 20px;
+      padding: 24px 16px;
       max-width: 100%;
-      margin: 0 auto 40px;
+      margin: 0 auto 36px;
       position: relative;
+      border: 2px solid #FFEBE5;
+      box-shadow: 0 14px 34px rgba(255, 123, 137, 0.12);
     }
     @media (min-width: 768px) {
-      .domain-centerpiece { padding: 50px 40px; max-width: 800px; margin-bottom: 60px; }
+      .domain-centerpiece { padding: 44px 36px; max-width: 780px; margin-bottom: 50px; }
     }
 
     .domain-label {
@@ -361,51 +458,83 @@
       color: var(--primary-salmon); 
       letter-spacing: 1px; 
       text-transform: uppercase;
+      margin-bottom: 6px;
     }
     @media (min-width: 768px) {
-      .domain-label { font-size: 14px; letter-spacing: 1.5px; }
+      .domain-label { font-size: 13px; letter-spacing: 1.5px; }
     }
 
+    /* Responsive Domain Text Box with Click-to-Copy Interactive Feedback */
     .domain-display {
       font-family: 'Nunito', sans-serif;
-      font-size: 22px;
+      font-size: clamp(14px, 4.2vw, 28px);
       font-weight: 900;
       color: var(--primary-coral);
       background: #FFFFFF;
-      padding: 16px;
-      border-radius: 20px;
-      box-shadow: 0 8px 24px rgba(255, 165, 153, 0.15);
-      margin: 16px auto 24px;
-      display: inline-block;
-      word-break: break-all;
+      padding: 14px 12px;
+      border-radius: 18px;
+      border: 2px dashed #FFD4CA;
+      box-shadow: 0 6px 18px rgba(255, 165, 153, 0.14);
+      margin: 12px auto 20px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
       width: 100%;
+      cursor: pointer;
+      transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+      user-select: all;
+    }
+    .domain-display:hover {
+      transform: translateY(-3px) scale(1.015);
+      border-color: var(--primary-coral);
+      border-style: solid;
+      background: #FFFDFC;
+      box-shadow: 0 12px 28px rgba(255, 123, 137, 0.24);
+      color: #FF5A6D;
+    }
+    .domain-display:active {
+      transform: scale(0.97);
     }
     @media (min-width: 768px) {
-      .domain-display { font-size: 34px; padding: 24px 36px; border-radius: 24px; margin: 20px auto 36px; width: auto; box-shadow: 0 10px 30px rgba(255, 165, 153, 0.2); }
+      .domain-display { padding: 20px 32px; border-radius: 24px; margin: 16px auto 30px; width: auto; display: inline-flex; }
     }
 
     .quick-params {
       display: flex;
       flex-direction: column;
-      gap: 12px;
-      margin-top: 24px;
+      gap: 10px;
+      margin-top: 20px;
     }
     @media (min-width: 768px) {
-      .quick-params { flex-direction: row; justify-content: center; gap: 20px; margin-top: 30px; }
+      .quick-params { flex-direction: row; justify-content: center; gap: 16px; margin-top: 26px; }
     }
 
     .param-badge {
       background: #FFFFFF;
-      padding: 12px 20px;
-      border-radius: 20px;
-      font-weight: 700;
+      padding: 12px 18px;
+      border-radius: 16px;
+      border: 1.5px solid #F7ECE8;
+      font-weight: 800;
       font-size: 14px;
       color: var(--text-dark);
-      box-shadow: var(--shadow-sm);
+      box-shadow: 0 4px 14px rgba(255, 165, 153, 0.12);
       display: flex;
       align-items: center;
       justify-content: center;
       gap: 8px;
+      cursor: pointer;
+      transition: all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+      user-select: none;
+    }
+    .param-badge:hover {
+      transform: translateY(-3px) scale(1.03);
+      border-color: var(--primary-salmon);
+      box-shadow: 0 10px 22px rgba(255, 165, 153, 0.25);
+      background: #FFFDFD;
+    }
+    .param-badge:active {
+      transform: scale(0.96);
     }
     @media (min-width: 768px) {
       .param-badge { padding: 12px 24px; border-radius: 999px; font-size: 15px; }
@@ -414,55 +543,77 @@
     .param-badge span.val {
       color: var(--primary-salmon);
       font-size: 16px;
+      font-weight: 900;
     }
     @media (min-width: 768px) {
-      .param-badge span.val { font-size: 18px; }
+      .param-badge span.val { font-size: 17px; }
     }
 
     /* Sections Shared */
     .section-title-wrap {
       text-align: center;
-      margin-bottom: 30px;
+      margin-bottom: 24px;
     }
     @media (min-width: 768px) {
-      .section-title-wrap { margin-bottom: 50px; }
+      .section-title-wrap { margin-bottom: 40px; }
     }
 
     .section-title {
-      font-size: 24px;
+      font-size: 22px;
       color: var(--text-dark);
       margin-bottom: 8px;
       display: inline-block;
       border-bottom: 3px dashed var(--primary-salmon);
-      padding-bottom: 8px;
+      padding-bottom: 6px;
+      transition: all 0.3s ease;
+    }
+    .section-title:hover {
+      transform: scale(1.03);
+      border-bottom-color: var(--primary-coral);
     }
     @media (min-width: 768px) {
-      .section-title { font-size: 32px; margin-bottom: 12px; }
+      .section-title { font-size: 30px; margin-bottom: 12px; }
     }
 
     /* Steps Section */
     .steps-grid {
       display: flex;
       flex-direction: column;
-      gap: 20px;
-      margin-bottom: 60px;
+      gap: 16px;
+      margin-bottom: 50px;
     }
     @media (min-width: 768px) {
-      .steps-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 30px; margin-bottom: 80px; }
+      .steps-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 24px; margin-bottom: 70px; }
     }
 
     .step-card {
-      padding: 24px 20px;
+      padding: 22px 18px;
       text-align: center;
-      border: 1px solid #F6EDEA;
+      border: 2px solid #F6EDEA;
+      cursor: pointer;
+    }
+    .step-card:hover {
+      transform: translateY(-8px) scale(1.02);
+      box-shadow: 0 20px 40px rgba(255, 123, 137, 0.16);
+      border-color: var(--primary-salmon);
+    }
+    .step-card:hover .step-number {
+      transform: rotate(8deg) scale(1.15);
+      box-shadow: 0 10px 24px rgba(255, 123, 137, 0.5);
+      background: var(--primary-coral);
+    }
+    .step-card:hover .setting-pill {
+      background: #FFFFFF;
+      border-color: var(--primary-salmon);
+      box-shadow: 0 6px 16px rgba(255, 165, 153, 0.15);
     }
     @media (min-width: 768px) {
-      .step-card { padding: 36px 28px; }
+      .step-card { padding: 32px 24px; }
     }
 
     .step-number {
-      width: 48px;
-      height: 48px;
+      width: 46px;
+      height: 46px;
       background: var(--primary-salmon);
       color: #FFFFFF;
       border-radius: 16px;
@@ -471,47 +622,54 @@
       align-items: center;
       justify-content: center;
       font-family: 'Nunito', sans-serif;
-      font-size: 22px;
+      font-size: 20px;
       font-weight: 900;
-      margin: 0 auto 16px;
+      margin: 0 auto 14px;
       box-shadow: 0 6px 16px rgba(255, 165, 153, 0.4);
+      transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
     }
     @media (min-width: 768px) {
-      .step-number { width: 56px; height: 56px; font-size: 26px; margin-bottom: 20px; box-shadow: 0 8px 20px rgba(255, 165, 153, 0.4); }
+      .step-number { width: 52px; height: 52px; font-size: 24px; margin-bottom: 18px; }
     }
 
     .step-title {
-      font-size: 19px;
-      margin-bottom: 10px;
+      font-size: 18px;
+      margin-bottom: 8px;
       color: var(--primary-coral);
+      transition: color 0.2s;
+    }
+    .step-card:hover .step-title {
+      color: #FF5A6D;
     }
     @media (min-width: 768px) {
-      .step-title { font-size: 22px; margin-bottom: 12px; }
+      .step-title { font-size: 20px; margin-bottom: 10px; }
     }
 
     .step-desc {
-      font-size: 14px;
+      font-size: 13px;
       color: var(--text-muted);
-      margin-bottom: 20px;
+      margin-bottom: 16px;
+      line-height: 1.5;
     }
     @media (min-width: 768px) {
-      .step-desc { font-size: 15px; margin-bottom: 24px; }
+      .step-desc { font-size: 14px; margin-bottom: 20px; }
     }
 
     .setting-pill {
       background: var(--bg-paper);
-      padding: 12px 16px;
-      border-radius: 12px;
+      padding: 10px 14px;
+      border-radius: 14px;
       font-size: 13px;
       font-weight: 700;
       color: var(--text-dark);
       display: flex;
       flex-direction: column;
       gap: 6px;
-      border: 1px solid #EFE4DF;
+      border: 1.5px solid #EFE4DF;
+      transition: all 0.25s ease;
     }
     @media (min-width: 768px) {
-      .setting-pill { padding: 12px 20px; font-size: 14px; gap: 8px; }
+      .setting-pill { padding: 12px 18px; font-size: 14px; }
     }
 
     /* Platforms */
@@ -520,96 +678,113 @@
       flex-direction: row;
       flex-wrap: wrap;
       justify-content: center;
-      gap: 10px;
-      margin-bottom: 30px;
+      gap: 8px;
+      margin-bottom: 24px;
     }
     @media (min-width: 768px) {
-      .platform-tabs { gap: 16px; margin-bottom: 40px; }
+      .platform-tabs { gap: 14px; margin-bottom: 34px; }
     }
 
     .tab-btn {
-      padding: 10px 18px;
-      border-radius: 16px;
+      padding: 10px 16px;
+      border-radius: 999px;
       background: #FFFFFF;
       color: var(--text-muted);
       font-family: 'Nunito', sans-serif;
-      font-size: 14px;
+      font-size: 13px;
       font-weight: 800;
       cursor: pointer;
-      border: 1px solid #F0E6E1;
-      box-shadow: var(--shadow-sm);
-      transition: all 0.3s ease;
+      border: 1.5px solid #F0E6E1;
+      box-shadow: 0 4px 12px rgba(255, 165, 153, 0.1);
+      transition: all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
       flex: 1 1 auto;
       text-align: center;
+      user-select: none;
+    }
+    .tab-btn:hover {
+      transform: translateY(-3px) scale(1.04);
+      color: var(--primary-coral);
+      border-color: var(--primary-salmon);
+      box-shadow: 0 8px 20px rgba(255, 165, 153, 0.2);
+    }
+    .tab-btn.active {
+      background: linear-gradient(135deg, var(--primary-salmon) 0%, var(--primary-coral) 100%);
+      color: #FFFFFF;
+      border-color: transparent;
+      transform: translateY(-3px) scale(1.05);
+      box-shadow: 0 10px 26px rgba(255, 123, 137, 0.35);
     }
     @media (min-width: 768px) {
-      .tab-btn { padding: 14px 28px; font-size: 16px; flex: none; }
-      .tab-btn:hover { background: var(--bg-peach); }
-      .tab-btn.active { transform: translateY(-3px); box-shadow: 0 10px 24px rgba(255, 165, 153, 0.3); }
-    }
-    
-    .tab-btn.active {
-      background: var(--primary-salmon);
-      color: #FFFFFF;
-      border-color: var(--primary-salmon);
+      .tab-btn { padding: 12px 26px; font-size: 15px; flex: none; }
     }
 
     .tab-pane {
       display: none;
-      animation: softFadeIn 0.3s ease;
+      animation: softFadeIn 0.35s ease;
     }
     .tab-pane.active { display: block; }
     @keyframes softFadeIn {
-      from { opacity: 0; transform: translateY(8px); }
-      to { opacity: 1; transform: translateY(0); }
+      from { opacity: 0; transform: translateY(12px) scale(0.98); }
+      to { opacity: 1; transform: translateY(0) scale(1); }
     }
 
     .guide-card {
-      padding: 24px;
-      margin-bottom: 60px;
-      border: 1px solid #F6EDEA;
+      padding: 20px 16px;
+      margin-bottom: 50px;
+      border: 2px solid #F6EDEA;
     }
     @media (min-width: 768px) {
-      .guide-card { padding: 40px; margin-bottom: 80px; }
+      .guide-card { padding: 36px; margin-bottom: 70px; }
     }
     
     .guide-card h3 {
-      font-size: 20px;
+      font-size: 19px;
       margin-bottom: 12px;
       text-align: center;
       color: var(--primary-coral);
     }
     @media (min-width: 768px) {
-      .guide-card h3 { font-size: 24px; margin-bottom: 20px; text-align: left; }
+      .guide-card h3 { font-size: 22px; margin-bottom: 18px; text-align: left; }
     }
 
     .guide-step-list {
       list-style: none;
-      margin-top: 16px;
+      margin-top: 14px;
     }
     @media (min-width: 768px) {
-      .guide-step-list { margin-top: 24px; }
+      .guide-step-list { margin-top: 20px; }
     }
 
     .guide-step-list li {
       display: flex;
       gap: 12px;
-      margin-bottom: 16px;
+      margin-bottom: 12px;
       font-size: 14px;
       font-weight: 600;
       align-items: flex-start;
-      padding-bottom: 16px;
+      padding: 8px 10px;
+      border-radius: 12px;
+      transition: all 0.2s ease;
       border-bottom: 1px dashed #F0E6E1;
     }
-    .guide-step-list li:last-child { border-bottom: none; padding-bottom: 0; }
+    .guide-step-list li:hover {
+      background: #FFF8F6;
+      transform: translateX(4px);
+    }
+    .guide-step-list li:hover .bullet {
+      transform: scale(1.15) rotate(6deg);
+      background: var(--primary-coral);
+      color: #FFFFFF;
+    }
+    .guide-step-list li:last-child { border-bottom: none; }
     @media (min-width: 768px) {
-      .guide-step-list li { gap: 16px; margin-bottom: 20px; font-size: 16px; }
+      .guide-step-list li { gap: 14px; margin-bottom: 16px; font-size: 15px; padding: 10px 14px; }
     }
 
     .guide-step-list li .bullet {
-      width: 28px;
-      height: 28px;
-      min-width: 28px;
+      width: 26px;
+      height: 26px;
+      min-width: 26px;
       border-radius: 8px;
       background: var(--bg-peach);
       color: var(--primary-coral);
@@ -617,62 +792,74 @@
       align-items: center;
       justify-content: center;
       font-size: 13px;
-      font-weight: 800;
+      font-weight: 900;
       margin-top: 2px;
+      transition: all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
     }
     @media (min-width: 768px) {
-      .guide-step-list li .bullet { width: 32px; height: 32px; min-width: 32px; font-size: 14px; margin-top: 0; }
+      .guide-step-list li .bullet { width: 30px; height: 30px; min-width: 30px; font-size: 14px; }
     }
 
     /* Live Rooms */
     .rooms-section {
-      margin-bottom: 60px;
+      margin-bottom: 50px;
     }
     @media (min-width: 768px) {
-      .rooms-section { margin-bottom: 80px; }
+      .rooms-section { margin-bottom: 70px; }
     }
 
     .room-grid {
       display: flex;
       flex-wrap: nowrap;
       overflow-x: auto;
-      gap: 16px;
-      padding-bottom: 12px;
+      gap: 14px;
+      padding: 8px 4px 16px;
       scroll-snap-type: x mandatory;
       -webkit-overflow-scrolling: touch;
-      scrollbar-width: none; /* Firefox */
+      scrollbar-width: none;
     }
     .room-grid::-webkit-scrollbar {
-      display: none; /* Chrome, Safari, Opera */
+      display: none;
     }
     @media (min-width: 768px) {
       .room-grid { 
         display: grid; 
-        grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); 
-        gap: 24px; 
+        grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); 
+        gap: 20px; 
         overflow-x: visible;
       }
     }
 
     .room-card {
-      padding: 20px;
+      padding: 18px;
       text-align: center;
-      border: 1px solid #F6EDEA;
-      flex: 0 0 85%; /* Peek of the next card on mobile */
+      border: 2px solid #F6EDEA;
+      flex: 0 0 85%;
       scroll-snap-align: center;
+      cursor: pointer;
+      transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+    .room-card:hover {
+      transform: translateY(-6px) scale(1.03);
+      box-shadow: 0 20px 38px rgba(255, 123, 137, 0.2);
+      border-color: var(--primary-salmon);
+    }
+    .room-card:hover .room-badge {
+      transform: scale(1.08);
+      background: var(--primary-coral);
     }
     @media (min-width: 768px) {
-      .room-card { padding: 24px; flex: auto; }
+      .room-card { padding: 22px; flex: auto; }
     }
 
     .room-game-title {
-      font-size: 16px;
+      font-size: 15px;
       font-weight: 800;
-      margin-bottom: 10px;
+      margin-bottom: 8px;
       color: var(--text-dark);
     }
     @media (min-width: 768px) {
-      .room-game-title { font-size: 18px; margin-bottom: 12px; }
+      .room-game-title { font-size: 17px; margin-bottom: 10px; }
     }
 
     .room-badge {
@@ -680,47 +867,49 @@
       padding: 4px 12px;
       border-radius: 8px;
       font-size: 11px;
-      font-weight: 800;
+      font-weight: 900;
       background: var(--primary-salmon);
       color: #FFFFFF;
-      margin-bottom: 12px;
+      margin-bottom: 10px;
+      transition: all 0.25s ease;
     }
     @media (min-width: 768px) {
-      .room-badge { padding: 6px 14px; font-size: 12px; margin-bottom: 16px; }
+      .room-badge { padding: 5px 14px; font-size: 12px; margin-bottom: 14px; }
     }
 
     /* Footer */
     footer {
       text-align: center;
-      padding: 40px 0 30px;
+      padding: 36px 0 26px;
       background: var(--bg-peach);
       margin-top: 20px;
+      border-top: 2px solid #F6EDEA;
     }
     @media (min-width: 768px) {
-      footer { padding: 60px 0 40px; margin-top: 40px; }
+      footer { padding: 50px 0 34px; margin-top: 40px; }
     }
 
     .footer-links {
       display: flex;
       flex-direction: column;
       justify-content: center;
-      gap: 16px;
-      margin-bottom: 20px;
+      gap: 14px;
+      margin-bottom: 16px;
     }
     @media (min-width: 768px) {
-      .footer-links { flex-direction: row; gap: 24px; margin-bottom: 24px; }
+      .footer-links { flex-direction: row; gap: 20px; margin-bottom: 20px; }
     }
 
     .footer-link {
       text-decoration: none;
       color: var(--text-muted);
-      font-weight: 700;
+      font-weight: 800;
       font-size: 14px;
-      transition: color 0.2s;
+      transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
     }
-    @media (min-width: 768px) {
-      .footer-link { font-size: 15px; }
-      .footer-link:hover { color: var(--primary-coral); }
+    .footer-link:hover {
+      color: var(--primary-coral);
+      transform: translateY(-2px);
     }
 
     /* Toast */
@@ -729,16 +918,16 @@
       bottom: 24px;
       left: 50%;
       transform: translateX(-50%) translateY(100px);
-      background: var(--primary-coral);
+      background: linear-gradient(135deg, var(--primary-coral) 0%, #FF929F 100%);
       color: #FFFFFF;
       padding: 12px 24px;
       border-radius: 999px;
       font-family: 'Nunito', sans-serif;
-      font-weight: 800;
+      font-weight: 900;
       font-size: 14px;
-      box-shadow: 0 10px 24px rgba(255, 123, 137, 0.4);
+      box-shadow: 0 12px 28px rgba(255, 123, 137, 0.45);
       opacity: 0;
-      transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+      transition: all 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
       z-index: 9999;
       display: flex;
       align-items: center;
@@ -767,12 +956,12 @@
     
     <header>
       <div class="header-content">
-        <a href="/" class="logo-badge" style="flex-direction: row; gap: 8px; align-items: center;">
-          <img src="/furuhonya.png" alt="Furuhonya" style="width: 28px; height: 28px; object-fit: contain; flex-shrink: 0;">
+        <a href="/" class="logo-badge">
+          <img src="/furuhonya.png" alt="Furuhonya" class="logo-img" style="width: 28px; height: 28px; object-fit: contain; flex-shrink: 0;">
           <span class="logo-text">Play PSP with Experience</span>
         </a>
         <div class="lang-switcher">
-          <select id="lang-select" onchange="changeLanguage(this.value)">
+          <select id="lang-select" onchange="changeLanguage(this.value)" aria-label="Select Language">
             <option value="vi">🇻🇳 VN</option>
             <option value="en">🇬🇧 EN</option>
             <option value="th">🇹🇭 TH</option>
@@ -792,7 +981,7 @@
         Kết nối dịu êm, thư giãn và mượt mà. Hỗ trợ đa nền tảng và tương thích hoàn toàn với máy PSP thực.
       </p>
 
-      <div class="status-pill">
+      <div class="status-pill" onclick="fetchServerStatus()" title="Nhấp để làm mới trạng thái máy chủ">
         <span class="live-dot"></span>
         <span id="server-status-text" data-i18n="status_connecting">Đang kết nối tới server...</span>
       </div>
@@ -802,8 +991,9 @@
           Server Domain (PRO Adhoc IP)
         </div>
         
-        <div class="domain-display" id="main-domain-text">
-          direct.play.isharoverwhite.com
+        <div class="domain-display" id="main-domain-text" onclick="copyText('direct.play.isharoverwhite.com', 'Domain')" title="Nhấp để sao chép Domain">
+          <span>direct.play.isharoverwhite.com</span>
+          <span class="material-symbols-outlined" style="font-size: 18px; color: var(--primary-salmon); flex-shrink: 0;">content_copy</span>
         </div>
 
         <div>
@@ -814,11 +1004,13 @@
         </div>
 
         <div class="quick-params">
-          <div class="param-badge">
-            PORT: <span class="val">27312</span>
+          <div class="param-badge" onclick="copyText('27312', 'Port')" title="Nhấp để sao chép Port">
+            <span>PORT:</span> <span class="val">27312</span>
+            <span class="material-symbols-outlined" style="font-size: 15px; color: var(--text-muted);">content_copy</span>
           </div>
-          <div class="param-badge">
-            OFFSET: <span class="val">0</span>
+          <div class="param-badge" onclick="copyText('0', 'Port Offset')" title="Nhấp để sao chép Offset">
+            <span>OFFSET:</span> <span class="val">0</span>
+            <span class="material-symbols-outlined" style="font-size: 15px; color: var(--text-muted);">content_copy</span>
           </div>
         </div>
       </div>
@@ -830,38 +1022,38 @@
       </div>
 
       <div class="steps-grid">
-        <div class="soft-card step-card">
+        <div class="soft-card step-card" onclick="copyText('Enable WLAN', 'WLAN')">
           <div class="step-number">1</div>
           <h3 class="step-title" data-i18n="step1_title">Bật Mạng</h3>
           <p class="step-desc" data-i18n="step1_desc">Vào Settings &gt; Networking trong cài đặt.</p>
           <div class="setting-pill">
-            <div style="display: flex; justify-content: space-between;">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
               <span>WLAN:</span>
-              <span style="color: #4ADE80;" data-i18n="step1_wlan">BẬT (ON)</span>
+              <span style="color: #4ADE80; font-weight: 800;" data-i18n="step1_wlan">BẬT (ON)</span>
             </div>
           </div>
         </div>
 
-        <div class="soft-card step-card">
+        <div class="soft-card step-card" onclick="copyText('direct.play.isharoverwhite.com', 'Domain')">
           <div class="step-number">2</div>
           <h3 class="step-title" data-i18n="step2_title">Nhập Server</h3>
           <p class="step-desc" data-i18n="step2_desc">Điền Domain vào ô Change PRO ad hoc IP.</p>
           <div class="setting-pill">
-            <div style="display: flex; justify-content: space-between;">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
               <span>Built-in:</span>
-              <span style="color: var(--primary-coral);" data-i18n="step2_builtin">TẮT (OFF)</span>
+              <span style="color: var(--primary-coral); font-weight: 800;" data-i18n="step2_builtin">TẮT (OFF)</span>
             </div>
           </div>
         </div>
 
-        <div class="soft-card step-card">
+        <div class="soft-card step-card" onclick="copyText('0', 'Port Offset')">
           <div class="step-number">3</div>
           <h3 class="step-title" data-i18n="step3_title">Port Offset</h3>
           <p class="step-desc" data-i18n="step3_desc">Giữ offset ở mức 0 để tương thích nhất.</p>
           <div class="setting-pill">
-            <div style="display: flex; justify-content: space-between;">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
               <span>Offset:</span>
-              <span style="color: var(--primary-salmon);" data-i18n="step3_offset">0 (Mặc định)</span>
+              <span style="color: var(--primary-salmon); font-weight: 800;" data-i18n="step3_offset">0 (Mặc định)</span>
             </div>
           </div>
         </div>
@@ -884,7 +1076,7 @@
           <h3 data-i18n="mobile_title">Cấu Hình Điện Thoại (Android / iOS)</h3>
           <ul class="guide-step-list">
             <li><span class="bullet">1</span><span data-i18n="mobile_step1">Vào <strong>Settings</strong> &gt; <strong>Networking</strong> &gt; Bật <strong>Enable networking/WLAN</strong>.</span></li>
-            <li><span class="bullet">2</span><span data-i18n="mobile_step2">Chọn <strong>Change PRO ad hoc server IP address</strong> và dán: <code style="background: var(--bg-peach); padding: 2px 6px; border-radius: 6px; color: var(--primary-coral); word-break: break-all;">ppsspp.isharoverwhite.com</code>.</span></li>
+            <li><span class="bullet">2</span><span data-i18n="mobile_step2">Chọn <strong>Change PRO ad hoc server IP address</strong> và dán: <code onclick="copyText('direct.play.isharoverwhite.com', 'Domain')" title="Nhấp để sao chép">direct.play.isharoverwhite.com</code>.</span></li>
             <li><span class="bullet">3</span><span data-i18n="mobile_step3">Tắt <strong>Enable built-in PRO ad hoc server</strong>.</span></li>
             <li><span class="bullet">4</span><span data-i18n="mobile_step4">Đặt <strong>Port offset = 0</strong>.</span></li>
           </ul>
@@ -896,7 +1088,7 @@
           <h3 data-i18n="pc_title">Cấu Hình Máy Tính (Windows / macOS)</h3>
           <ul class="guide-step-list">
             <li><span class="bullet">1</span><span data-i18n="pc_step1">Mở PPSSPP, vào <strong>Settings</strong> &gt; <strong>Networking</strong> &gt; Bật <strong>Enable networking/WLAN</strong>.</span></li>
-            <li><span class="bullet">2</span><span data-i18n="pc_step2">Dán Domain Server vào ô <strong>Change PRO ad hoc IP</strong>.</span></li>
+            <li><span class="bullet">2</span><span data-i18n="pc_step2">Dán Domain Server vào ô <strong>Change PRO ad hoc IP</strong>: <code onclick="copyText('direct.play.isharoverwhite.com', 'Domain')" title="Nhấp để sao chép">direct.play.isharoverwhite.com</code>.</span></li>
             <li><span class="bullet">3</span><span data-i18n="pc_step3">Tắt <strong>built-in server</strong> và đặt <strong>Port offset = 0</strong>.</span></li>
             <li><span class="bullet">4</span><span data-i18n="pc_step4"><em>Windows:</em> Cho phép PPSSPP qua Windows Defender Firewall nếu được hỏi.</span></li>
           </ul>
@@ -907,9 +1099,9 @@
         <div class="soft-card guide-card">
           <h3 data-i18n="psp_title">Cấu Hình Máy PSP Thật (Hardware)</h3>
           <ul class="guide-step-list">
-            <li><span class="bullet">1</span><span data-i18n="psp_step1">Tải plugin <strong>Pro Online Client</strong>และ chép <code style="background: var(--bg-peach); padding: 2px 6px; border-radius: 6px;">Atpro.prx</code> vào thẻ nhớ PSP.</span></li>
-            <li><span class="bullet">2</span><span data-i18n="psp_step2">Mở file <code style="background: var(--bg-peach); padding: 2px 6px; border-radius: 6px;">server.txt</code>, điền <code style="color: var(--primary-coral); word-break: break-all;">ppsspp.isharoverwhite.com</code>.</span></li>
-            <li><span class="bullet">3</span><span data-i18n="psp_step3">Thêm dòng <code style="background: var(--bg-peach); padding: 2px 6px; border-radius: 6px; word-break: break-all;">ms0:/seplugins/atpro.prx 1</code> vào file game.txt.</span></li>
+            <li><span class="bullet">1</span><span data-i18n="psp_step1">Tải plugin <strong>Pro Online Client</strong> và chép <code onclick="copyText('Atpro.prx', 'Tên plugin')">Atpro.prx</code> vào thẻ nhớ PSP.</span></li>
+            <li><span class="bullet">2</span><span data-i18n="psp_step2">Mở file <code onclick="copyText('server.txt', 'Tên file')">server.txt</code>, điền: <code onclick="copyText('direct.play.isharoverwhite.com', 'Domain')" title="Nhấp để sao chép">direct.play.isharoverwhite.com</code>.</span></li>
+            <li><span class="bullet">3</span><span data-i18n="psp_step3">Thêm dòng <code onclick="copyText('ms0:/seplugins/atpro.prx 1', 'Config')">ms0:/seplugins/atpro.prx 1</code> vào file game.txt.</span></li>
             <li><span class="bullet">4</span><span data-i18n="psp_step4">Kết nối PSP vào WiFi (chuẩn bảo mật WPA/WPA2) và mở game.</span></li>
           </ul>
         </div>
@@ -971,18 +1163,18 @@
         tab_psp: "🎮 Máy PSP Thực",
         mobile_title: "Cấu Hình Điện Thoại (Android / iOS)",
         mobile_step1: "Vào <strong>Settings</strong> &gt; <strong>Networking</strong> &gt; Bật <strong>Enable networking/WLAN</strong>.",
-        mobile_step2: "Chọn <strong>Change PRO ad hoc server IP address</strong> và dán: <code style=\"background: var(--bg-peach); padding: 2px 6px; border-radius: 6px; color: var(--primary-coral); word-break: break-all;\">ppsspp.isharoverwhite.com</code>.",
+        mobile_step2: "Chọn <strong>Change PRO ad hoc server IP address</strong> và dán: <code onclick=\"copyText('direct.play.isharoverwhite.com', 'Domain')\" title=\"Nhấp để sao chép\">direct.play.isharoverwhite.com</code>.",
         mobile_step3: "Tắt <strong>Enable built-in PRO ad hoc server</strong>.",
         mobile_step4: "Đặt <strong>Port offset = 0</strong>.",
         pc_title: "Cấu Hình Máy Tính (Windows / macOS)",
         pc_step1: "Mở PPSSPP, vào <strong>Settings</strong> &gt; <strong>Networking</strong> &gt; Bật <strong>Enable networking/WLAN</strong>.",
-        pc_step2: "Dán Domain Server vào ô <strong>Change PRO ad hoc IP</strong>.",
+        pc_step2: "Dán Domain Server vào ô <strong>Change PRO ad hoc IP</strong>: <code onclick=\"copyText('direct.play.isharoverwhite.com', 'Domain')\" title=\"Nhấp để sao chép\">direct.play.isharoverwhite.com</code>.",
         pc_step3: "Tắt <strong>built-in server</strong> và đặt <strong>Port offset = 0</strong>.",
         pc_step4: "<em>Windows:</em> Cho phép PPSSPP qua Windows Defender Firewall nếu được hỏi.",
         psp_title: "Cấu Hình Máy PSP Thật (Hardware)",
-        psp_step1: "Tải plugin <strong>Pro Online Client</strong> và chép <code style=\"background: var(--bg-peach); padding: 2px 6px; border-radius: 6px;\">Atpro.prx</code> vào thẻ nhớ PSP.",
-        psp_step2: "Mở file <code style=\"background: var(--bg-peach); padding: 2px 6px; border-radius: 6px;\">server.txt</code>, điền <code style=\"color: var(--primary-coral); word-break: break-all;\">ppsspp.isharoverwhite.com</code>.",
-        psp_step3: "Thêm dòng <code style=\"background: var(--bg-peach); padding: 2px 6px; border-radius: 6px; word-break: break-all;\">ms0:/seplugins/atpro.prx 1</code> vào file game.txt.",
+        psp_step1: "Tải plugin <strong>Pro Online Client</strong> và chép <code onclick=\"copyText('Atpro.prx', 'Tên plugin')\">Atpro.prx</code> vào thẻ nhớ PSP.",
+        psp_step2: "Mở file <code onclick=\"copyText('server.txt', 'Tên file')\">server.txt</code>, điền: <code onclick=\"copyText('direct.play.isharoverwhite.com', 'Domain')\" title=\"Nhấp để sao chép\">direct.play.isharoverwhite.com</code>.",
+        psp_step3: "Thêm dòng <code onclick=\"copyText('ms0:/seplugins/atpro.prx 1', 'Config')\">ms0:/seplugins/atpro.prx 1</code> vào file game.txt.",
         psp_step4: "Kết nối PSP vào WiFi (chuẩn bảo mật WPA/WPA2) và mở game.",
         rooms_title: "Góc Sách & Sảnh Chơi",
         rooms_empty_title: "Góc chơi hiện đang trống",
@@ -1018,18 +1210,18 @@
         tab_psp: "🎮 Real PSP",
         mobile_title: "Mobile Configuration (Android / iOS)",
         mobile_step1: "Go to <strong>Settings</strong> &gt; <strong>Networking</strong> &gt; Check <strong>Enable networking/WLAN</strong>.",
-        mobile_step2: "Select <strong>Change PRO ad hoc server IP address</strong> and paste: <code style=\"background: var(--bg-peach); padding: 2px 6px; border-radius: 6px; color: var(--primary-coral); word-break: break-all;\">ppsspp.isharoverwhite.com</code>.",
+        mobile_step2: "Select <strong>Change PRO ad hoc server IP address</strong> and paste: <code onclick=\"copyText('direct.play.isharoverwhite.com', 'Domain')\" title=\"Click to copy\">direct.play.isharoverwhite.com</code>.",
         mobile_step3: "Uncheck <strong>Enable built-in PRO ad hoc server</strong>.",
         mobile_step4: "Set <strong>Port offset = 0</strong>.",
         pc_title: "PC Configuration (Windows / macOS)",
         pc_step1: "Open PPSSPP, go to <strong>Settings</strong> &gt; <strong>Networking</strong> &gt; Check <strong>Enable networking/WLAN</strong>.",
-        pc_step2: "Paste Server Domain into <strong>Change PRO ad hoc IP</strong>.",
+        pc_step2: "Paste Server Domain into <strong>Change PRO ad hoc IP</strong>: <code onclick=\"copyText('direct.play.isharoverwhite.com', 'Domain')\" title=\"Click to copy\">direct.play.isharoverwhite.com</code>.",
         pc_step3: "Uncheck <strong>built-in server</strong> and set <strong>Port offset = 0</strong>.",
         pc_step4: "<em>Windows:</em> Allow PPSSPP through Windows Defender Firewall if asked.",
         psp_title: "Real PSP Hardware Configuration",
-        psp_step1: "Download <strong>Pro Online Client</strong> plugin and copy <code style=\"background: var(--bg-peach); padding: 2px 6px; border-radius: 6px;\">Atpro.prx</code> to your PSP memory stick.",
-        psp_step2: "Open <code style=\"background: var(--bg-peach); padding: 2px 6px; border-radius: 6px;\">server.txt</code>, enter <code style=\"color: var(--primary-coral); word-break: break-all;\">ppsspp.isharoverwhite.com</code>.",
-        psp_step3: "Add <code style=\"background: var(--bg-peach); padding: 2px 6px; border-radius: 6px; word-break: break-all;\">ms0:/seplugins/atpro.prx 1</code> to your game.txt.",
+        psp_step1: "Download <strong>Pro Online Client</strong> plugin and copy <code onclick=\"copyText('Atpro.prx', 'Plugin name')\">Atpro.prx</code> to your PSP memory stick.",
+        psp_step2: "Open <code onclick=\"copyText('server.txt', 'File name')\">server.txt</code>, enter: <code onclick=\"copyText('direct.play.isharoverwhite.com', 'Domain')\" title=\"Click to copy\">direct.play.isharoverwhite.com</code>.",
+        psp_step3: "Add <code onclick=\"copyText('ms0:/seplugins/atpro.prx 1', 'Config')\">ms0:/seplugins/atpro.prx 1</code> to your game.txt.",
         psp_step4: "Connect PSP to WiFi (WPA/WPA2 security) and launch the game.",
         rooms_title: "Reading Corner & Game Lobbies",
         rooms_empty_title: "The lobby is currently empty",
@@ -1065,18 +1257,18 @@
         tab_psp: "🎮 เครื่อง PSP จริง",
         mobile_title: "การตั้งค่าบนมือถือ (Android / iOS)",
         mobile_step1: "ไปที่ <strong>Settings</strong> &gt; <strong>Networking</strong> &gt; เลือก <strong>Enable networking/WLAN</strong>.",
-        mobile_step2: "เลือก <strong>Change PRO ad hoc server IP address</strong> แล้ววาง: <code style=\"background: var(--bg-peach); padding: 2px 6px; border-radius: 6px; color: var(--primary-coral); word-break: break-all;\">ppsspp.isharoverwhite.com</code>.",
+        mobile_step2: "เลือก <strong>Change PRO ad hoc server IP address</strong> แล้ววาง: <code onclick=\"copyText('direct.play.isharoverwhite.com', 'Domain')\" title=\"คลิกเพื่อคัดลอก\">direct.play.isharoverwhite.com</code>.",
         mobile_step3: "ยกเลิกการเลือก <strong>Enable built-in PRO ad hoc server</strong>.",
         mobile_step4: "ตั้งค่า <strong>Port offset = 0</strong>.",
         pc_title: "การตั้งค่าพีซี (Windows / macOS)",
         pc_step1: "เปิด PPSSPP ไปที่ <strong>Settings</strong> &gt; <strong>Networking</strong> &gt; เลือก <strong>Enable networking/WLAN</strong>.",
-        pc_step2: "วางโดเมนเซิร์ฟเวอร์ใน <strong>Change PRO ad hoc IP</strong>.",
+        pc_step2: "วางโดเมนเซิร์ฟเวอร์ใน <strong>Change PRO ad hoc IP</strong>: <code onclick=\"copyText('direct.play.isharoverwhite.com', 'Domain')\" title=\"คลิกเพื่อคัดลอก\">direct.play.isharoverwhite.com</code>.",
         pc_step3: "ยกเลิกการเลือก <strong>built-in server</strong> และตั้งค่า <strong>Port offset = 0</strong>.",
         pc_step4: "<em>Windows:</em> อนุญาต PPSSPP ผ่าน Windows Defender Firewall หากถูกถาม",
         psp_title: "การตั้งค่าฮาร์ดแวร์ PSP จริง",
-        psp_step1: "ดาวน์โหลด <strong>Pro Online Client</strong> และคัดลอก <code style=\"background: var(--bg-peach); padding: 2px 6px; border-radius: 6px;\">Atpro.prx</code> ลงในเมมโมรี่สติ๊ก PSP",
-        psp_step2: "เปิด <code style=\"background: var(--bg-peach); padding: 2px 6px; border-radius: 6px;\">server.txt</code>, กรอก <code style=\"color: var(--primary-coral); word-break: break-all;\">ppsspp.isharoverwhite.com</code>.",
-        psp_step3: "เพิ่ม <code style=\"background: var(--bg-peach); padding: 2px 6px; border-radius: 6px; word-break: break-all;\">ms0:/seplugins/atpro.prx 1</code> ลงใน game.txt",
+        psp_step1: "ดาวน์โหลด <strong>Pro Online Client</strong> และคัดลอก <code onclick=\"copyText('Atpro.prx', 'Plugin')\">Atpro.prx</code> ลงในเมมโมรี่สติ๊ก PSP",
+        psp_step2: "เปิด <code onclick=\"copyText('server.txt', 'File')\">server.txt</code>, กรอก: <code onclick=\"copyText('direct.play.isharoverwhite.com', 'Domain')\" title=\"คลิกเพื่อคัดลอก\">direct.play.isharoverwhite.com</code>.",
+        psp_step3: "เพิ่ม <code onclick=\"copyText('ms0:/seplugins/atpro.prx 1', 'Config')\">ms0:/seplugins/atpro.prx 1</code> ลงใน game.txt",
         psp_step4: "เชื่อมต่อ PSP กับ WiFi (ความปลอดภัย WPA/WPA2) และเปิดเกม",
         rooms_title: "มุมอ่านหนังสือ & ล็อบบี้เกม",
         rooms_empty_title: "ขณะนี้ยังไม่มีห้องว่าง",
@@ -1112,18 +1304,18 @@
         tab_psp: "🎮 PSP Asli",
         mobile_title: "Pengaturan Ponsel (Android / iOS)",
         mobile_step1: "Buka <strong>Settings</strong> &gt; <strong>Networking</strong> &gt; Centang <strong>Enable networking/WLAN</strong>.",
-        mobile_step2: "Pilih <strong>Change PRO ad hoc server IP address</strong> dan tempel: <code style=\"background: var(--bg-peach); padding: 2px 6px; border-radius: 6px; color: var(--primary-coral); word-break: break-all;\">ppsspp.isharoverwhite.com</code>.",
+        mobile_step2: "Pilih <strong>Change PRO ad hoc server IP address</strong> dan tempel: <code onclick=\"copyText('direct.play.isharoverwhite.com', 'Domain')\" title=\"Klik untuk menyalin\">direct.play.isharoverwhite.com</code>.",
         mobile_step3: "Hapus centang <strong>Enable built-in PRO ad hoc server</strong>.",
         mobile_step4: "Atur <strong>Port offset = 0</strong>.",
         pc_title: "Pengaturan PC (Windows / macOS)",
         pc_step1: "Buka PPSSPP, ke <strong>Settings</strong> &gt; <strong>Networking</strong> &gt; Centang <strong>Enable networking/WLAN</strong>.",
-        pc_step2: "Tempel Domain Server di <strong>Change PRO ad hoc IP</strong>.",
+        pc_step2: "Tempel Domain Server di <strong>Change PRO ad hoc IP</strong>: <code onclick=\"copyText('direct.play.isharoverwhite.com', 'Domain')\" title=\"Klik untuk menyalin\">direct.play.isharoverwhite.com</code>.",
         pc_step3: "Hapus centang <strong>built-in server</strong> dan atur <strong>Port offset = 0</strong>.",
         pc_step4: "<em>Windows:</em> Izinkan PPSSPP melalui Windows Defender Firewall jika diminta.",
         psp_title: "Pengaturan Perangkat Keras PSP Asli",
-        psp_step1: "Unduh plugin <strong>Pro Online Client</strong> dan salin <code style=\"background: var(--bg-peach); padding: 2px 6px; border-radius: 6px;\">Atpro.prx</code> ke memory stick PSP Anda.",
-        psp_step2: "Buka <code style=\"background: var(--bg-peach); padding: 2px 6px; border-radius: 6px;\">server.txt</code>, masukkan <code style=\"color: var(--primary-coral); word-break: break-all;\">ppsspp.isharoverwhite.com</code>.",
-        psp_step3: "Tambahkan <code style=\"background: var(--bg-peach); padding: 2px 6px; border-radius: 6px; word-break: break-all;\">ms0:/seplugins/atpro.prx 1</code> ke game.txt Anda.",
+        psp_step1: "Unduh plugin <strong>Pro Online Client</strong> dan salin <code onclick=\"copyText('Atpro.prx', 'Plugin')\">Atpro.prx</code> ke memory stick PSP Anda.",
+        psp_step2: "Buka <code onclick=\"copyText('server.txt', 'File')\">server.txt</code>, masukkan: <code onclick=\"copyText('direct.play.isharoverwhite.com', 'Domain')\" title=\"Klik untuk menyalin\">direct.play.isharoverwhite.com</code>.",
+        psp_step3: "Tambahkan <code onclick=\"copyText('ms0:/seplugins/atpro.prx 1', 'Config')\">ms0:/seplugins/atpro.prx 1</code> ke game.txt Anda.",
         psp_step4: "Hubungkan PSP ke WiFi (keamanan WPA/WPA2) dan luncurkan game.",
         rooms_title: "Pojok Baca & Lobi Game",
         rooms_empty_title: "Lobi saat ini kosong",
@@ -1242,9 +1434,8 @@
 
       let html = '';
       games.forEach(g => {
-        
         html += `
-          <div class="soft-card room-card">
+          <div class="soft-card room-card" onclick="copyText('${g.id}', 'Mã Game ${g.id}')" title="Nhấp để sao chép mã Game">
             <span class="room-badge">${g.id}</span>
             <div class="room-game-title">${g.name}</div>
             <div style="display: flex; justify-content: space-between; font-size: 13px; font-weight: 800; color: var(--primary-coral); margin-top: 12px;">
@@ -1253,7 +1444,6 @@
             </div>
           </div>
         `;
-
       });
       container.innerHTML = html;
     }
