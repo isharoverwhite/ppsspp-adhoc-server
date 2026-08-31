@@ -25,11 +25,60 @@
   <meta property="twitter:description" content="Máy chủ PPSSPP / Real PSP Ad-hoc Multiplayer với phong cách Furuhonya (Kani-chan) Chiikawa.">
   <meta property="twitter:image" content="https://ppsspp.isharoverwhite.com/favicon.png">
 
-  <!-- Favicons -->
-  <link rel="icon" type="image/x-icon" href="/favicon.ico">
-  <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
-  <link rel="icon" type="image/png" sizes="192x192" href="/favicon.png">
-  <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+  <!-- Canonical URL -->
+  <link rel="canonical" href="https://ppsspp.isharoverwhite.com/">
+
+  <!-- Structured Data / JSON-LD for Google Search & Knowledge Graph -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "WebSite",
+        "@id": "https://ppsspp.isharoverwhite.com/#website",
+        "url": "https://ppsspp.isharoverwhite.com/",
+        "name": "Play PSP with Experience",
+        "description": "Máy chủ PPSSPP & Real PSP Ad-hoc Multiplayer chất lượng cao, độ trễ thấp theo chuẩn PRO Online.",
+        "inLanguage": ["vi", "en", "ja"]
+      },
+      {
+        "@type": "SoftwareApplication",
+        "@id": "https://ppsspp.isharoverwhite.com/#application",
+        "name": "PPSSPP Ad-Hoc Multiplayer Server",
+        "applicationCategory": "GameApplication",
+        "operatingSystem": "Android, iOS, Windows, macOS, Linux, Sony PSP",
+        "offers": {
+          "@type": "Offer",
+          "price": "0",
+          "priceCurrency": "USD"
+        },
+        "description": "Máy chủ chơi game PSP qua mạng Ad-hoc trực tuyến, hỗ trợ kết nối chéo giữa giả lập PPSSPP và máy PSP thật qua giao thức PRO Online."
+      },
+      {
+        "@type": "HowTo",
+        "name": "Hướng dẫn kết nối máy chủ PPSSPP Ad-Hoc Multiplayer",
+        "description": "Các bước thiết lập IP và port để chơi PSP online cùng bạn bè.",
+        "step": [
+          {
+            "@type": "HowToStep",
+            "name": "Bật tính năng kết nối mạng",
+            "text": "Mở PPSSPP -> Cài đặt -> Mạng / Trò chơi mạng -> Bật Mạng/WLAN và Bật máy chủ PRO Adhoc tích hợp."
+          },
+          {
+            "@type": "HowToStep",
+            "name": "Điền địa chỉ IP máy chủ",
+            "text": "Nhập địa chỉ máy chủ: ppsspp.isharoverwhite.com hoặc 192.168.1.64 nếu cùng mạng LAN."
+          },
+          {
+            "@type": "HowToStep",
+            "name": "Thiết lập Port offset",
+            "text": "Đặt Port Offset bằng 0 và Port kết nối 27312."
+          }
+        ]
+      }
+    ]
+  }
+  </script>
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>

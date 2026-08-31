@@ -1,5 +1,29 @@
+# robots.txt for Play PSP with Experience - PPSSPP Ad-Hoc Multiplayer Server
+# Website: https://ppsspp.isharoverwhite.com/
+
+User-agent: Googlebot
+Allow: /
+Allow: /favicon.png
+Allow: /favicon-32x32.png
+Allow: /apple-touch-icon.png
+Allow: /favicon.ico
+Disallow: /api/
+
+User-agent: Googlebot-Image
+Allow: /
+Allow: /*.png$
+Allow: /*.jpg$
+Allow: /*.jpeg$
+Allow: /*.svg$
+Allow: /*.ico$
+
+User-agent: Bingbot
+Allow: /
+Disallow: /api/
+
 User-agent: *
 Allow: /
 Disallow: /api/
 
+# XML Sitemaps
 Sitemap: https://ppsspp.isharoverwhite.com/sitemap.xml
