@@ -1,6 +1,7 @@
 'use server'
 
 import { prisma } from '@/lib/prisma';
+import { getProductMap } from '@/lib/products';
 
 function isPrivateIP(ip?: string | null): boolean {
     if (!ip) return true;
@@ -11,19 +12,40 @@ function isPrivateIP(ip?: string | null): boolean {
     return false;
 }
 
+// In-memory cache for analytics summary (60s TTL)
+let cachedAnalytics: { data: any; timestamp: number } | null = null;
+const ANALYTICS_TTL = 60 * 1000;
+
 export async function getAnalyticsData() {
+    const now = Date.now();
+    if (cachedAnalytics && (now - cachedAnalytics.timestamp) < ANALYTICS_TTL) {
+        return cachedAnalytics.data;
+    }
+
     try {
-        // 1. History (Filter out local LAN/NAT test connections)
+        // 1. History (Filter out local LAN/NAT test connections, limit to recent 100)
         const allHistory = await prisma.playerHistory.findMany({
             take: 100,
-            orderBy: { joinedAt: 'desc' }
+            orderBy: { joinedAt: 'desc' },
+            select: {
+                id: true,
+                mac: true,
+                ip: true,
+                name: true,
+                game: true,
+                joinedAt: true,
+                leftAt: true
+            }
         });
 
         // Filter out private LAN IPs
         const publicHistory = allHistory.filter(h => !isPrivateIP(h.ip)).slice(0, 50);
 
-        // 2. Retention (returning players with public IPs)
+        // 2. Retention (returning players with public IPs from last 90 days)
         const allPlayers = await prisma.playerHistory.findMany({
+            where: {
+                joinedAt: { gte: new Date(now - 90 * 24 * 60 * 60 * 1000) }
+            },
             select: { mac: true, ip: true, joinedAt: true }
         });
         
@@ -40,7 +62,7 @@ export async function getAnalyticsData() {
             }
         });
         
-        let totalUnique = macDates.size;
+        const totalUnique = macDates.size;
         let returning = 0;
         macDates.forEach(dates => {
             if (dates.size > 1) returning++;
@@ -53,9 +75,7 @@ export async function getAnalyticsData() {
             gameCounts.set(h.game, (gameCounts.get(h.game) || 0) + 1);
         });
 
-        // Fetch product names for mapping
-        const productIds = await prisma.$queryRaw<Array<{id: string, name: string}>>`SELECT id, name FROM productids`;
-        const productMap = new Map(productIds.map(p => [p.id, p.name]));
+        const productMap = await getProductMap();
 
         const gameTrend = Array.from(gameCounts.entries())
             .sort((a, b) => b[1] - a[1])
@@ -65,11 +85,14 @@ export async function getAnalyticsData() {
                 count
             }));
 
-        return { 
+        const result = { 
             history: publicHistory, 
             retention: { total: totalUnique, returning }, 
             gameTrend 
         };
+
+        cachedAnalytics = { data: result, timestamp: now };
+        return result;
     } catch (e: any) {
         console.error("Error fetching analytics data", e);
         return { history: [], retention: { total: 0, returning: 0 }, gameTrend: [] };
@@ -78,7 +101,10 @@ export async function getAnalyticsData() {
 
 export async function getGeoLocations() {
     try {
-        const locations = await prisma.iPLocation.findMany();
+        const locations = await prisma.iPLocation.findMany({
+            take: 200,
+            orderBy: { updatedAt: 'desc' }
+        });
         // Return only public geo locations
         return locations.filter(l => !isPrivateIP(l.ip));
     } catch (e: any) {
@@ -101,35 +127,42 @@ export async function resolveIPLocation(ip: string) {
             }
         }
 
-        const res = await fetch(`http://ip-api.com/json/${ip}?fields=status,country,city,lat,lon`, {
-            signal: AbortSignal.timeout(3000)
-        });
-        if (res.ok) {
-            const data = await res.json();
-            if (data.status === 'success') {
-                const loc = await prisma.iPLocation.upsert({
-                    where: { ip },
-                    update: { country: data.country, city: data.city, lat: data.lat, lon: data.lon, updatedAt: new Date() },
-                    create: { ip, country: data.country, city: data.city, lat: data.lat, lon: data.lon }
-                });
-                return loc;
+        // Fetch from ip-api.com
+        const res = await fetch(`http://ip-api.com/json/${ip}?fields=status,country,city,lat,lon`);
+        if (!res.ok) return null;
+        const data = await res.json();
+        if (data.status !== 'success') return null;
+
+        return await prisma.iPLocation.upsert({
+            where: { ip },
+            create: {
+                ip,
+                country: data.country,
+                city: data.city,
+                lat: data.lat,
+                lon: data.lon,
+            },
+            update: {
+                country: data.country,
+                city: data.city,
+                lat: data.lat,
+                lon: data.lon,
             }
-        }
+        });
     } catch (e) {
-        console.error('Failed to resolve IP location for ' + ip, e);
+        return null;
     }
-    return null;
 }
 
-export async function getPerformanceSnapshots(limit: number = 50) {
+export async function getPerformanceSnapshots(limit = 50) {
     try {
         const snapshots = await prisma.performanceSnapshot.findMany({
             take: limit,
-            orderBy: { timestamp: 'desc' }
+            orderBy: { timestamp: 'desc' },
         });
         return { success: true, snapshots };
-    } catch (e: any) {
-        console.error("Error fetching performance snapshots", e);
-        return { success: false, error: e.message };
+    } catch (error: any) {
+        console.error('Failed to fetch performance snapshots:', error);
+        return { success: false, snapshots: [] };
     }
 }

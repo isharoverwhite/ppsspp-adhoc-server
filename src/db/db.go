@@ -23,15 +23,18 @@ type Database struct {
 
 func InitDB(dbPath string) (*Database, error) {
 	fmt.Printf("DB: Opening database at %s\n", dbPath)
-	conn, err := sql.Open("sqlite3", dbPath)
+	
+	// Open SQLite with WAL mode, busy timeout, and shared cache pragmas
+	dsn := fmt.Sprintf("%s?_journal_mode=WAL&_synchronous=NORMAL&_busy_timeout=5000&_cache=shared", dbPath)
+	conn, err := sql.Open("sqlite3", dsn)
 	if err != nil {
 		return nil, fmt.Errorf("failed to open database: %v", err)
 	}
 
-	// Enable WAL mode for better concurrency
-	if _, err := conn.Exec("PRAGMA journal_mode=WAL; PRAGMA synchronous=NORMAL;"); err != nil {
-		fmt.Printf("Warning: failed to enable WAL mode: %v\n", err)
-	}
+	// Optimize connection pooling for single-file embedded SQLite
+	conn.SetMaxOpenConns(1)
+	conn.SetMaxIdleConns(2)
+	conn.SetConnMaxLifetime(time.Hour)
 
 	db := &Database{
 		conn:           conn,
@@ -102,7 +105,10 @@ func (db *Database) validateTables() error {
 		game TEXT,
 		joinedAt TEXT,
 		leftAt TEXT
-	);`
+	);
+	CREATE INDEX IF NOT EXISTS idx_playerhistory_mac_left ON PlayerHistory(mac, leftAt);
+	CREATE INDEX IF NOT EXISTS idx_playerhistory_joined ON PlayerHistory(joinedAt);
+	CREATE INDEX IF NOT EXISTS idx_playerhistory_ip ON PlayerHistory(ip);`
 	if _, err := db.conn.Exec(historySchema); err != nil {
 		return fmt.Errorf("failed to create PlayerHistory table: %v", err)
 	}
@@ -116,7 +122,8 @@ func (db *Database) validateTables() error {
 		"group" TEXT,
 		message TEXT,
 		createdAt TEXT
-	);`
+	);
+	CREATE INDEX IF NOT EXISTS idx_chatmessage_created ON ChatMessage(createdAt);`
 	if _, err := db.conn.Exec(chatSchema); err != nil {
 		return fmt.Errorf("failed to create ChatMessage table: %v", err)
 	}

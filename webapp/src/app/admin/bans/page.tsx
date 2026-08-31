@@ -2,6 +2,7 @@ import { getBans } from '@/app/actions/bans';
 import { getServerStatus } from '@/app/actions/serverStatus';
 import ClientBans from './ClientBans';
 import { prisma } from '@/lib/prisma';
+import { getProductMap } from '@/lib/products';
 
 export const metadata = {
   title: 'Ban Management | Admin Dashboard',
@@ -11,9 +12,10 @@ export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
 export default async function BansPage() {
-  const [bansResult, statusResult] = await Promise.all([
+  const [bansResult, statusResult, productMap] = await Promise.all([
     getBans(),
     getServerStatus(),
+    getProductMap(),
   ]);
 
   let recentHistory: any[] = [];
@@ -21,18 +23,18 @@ export default async function BansPage() {
     recentHistory = await prisma.playerHistory.findMany({
       orderBy: { joinedAt: 'desc' },
       take: 100,
+      select: {
+        id: true,
+        mac: true,
+        ip: true,
+        name: true,
+        game: true,
+        joinedAt: true,
+        leftAt: true,
+      }
     });
   } catch (e) {
     console.error("Failed to fetch player history", e);
-  }
-
-  // Fetch product names for mapping game codes to human titles
-  let productMap = new Map<string, string>();
-  try {
-    const productIds = await prisma.$queryRaw<Array<{id: string, name: string}>>`SELECT id, name FROM productids`;
-    productMap = new Map(productIds.map(p => [p.id, p.name]));
-  } catch (e) {
-    // ignore
   }
 
   const rawBans = bansResult.success ? bansResult.bans : [];
@@ -59,24 +61,22 @@ export default async function BansPage() {
     });
   }
 
-  // 2. Map History with real game titles
-  const formattedHistory = recentHistory.map((h: any) => ({
+  // 2. Formatted History Players
+  const historyList = recentHistory.map((h) => ({
     id: h.id,
     mac: h.mac ? h.mac.toUpperCase() : '',
     ip: h.ip || '',
     name: h.name || 'Unknown Player',
-    game: productMap.get(h.game) || h.game || 'PSP Title',
-    joinedAt: h.joinedAt,
-    leftAt: h.leftAt,
+    game: productMap.get(h.game) || h.game || 'Unknown Game',
+    joinedAt: h.joinedAt ? new Date(h.joinedAt) : new Date(),
+    leftAt: h.leftAt ? new Date(h.leftAt) : null,
   }));
 
   return (
-    <div className="w-full h-full">
-      <ClientBans 
-        initialBans={rawBans as any[]} 
-        onlineUsers={onlineList}
-        historyUsers={formattedHistory}
-      />
-    </div>
+    <ClientBans
+      initialBans={rawBans}
+      onlineUsers={onlineList}
+      historyUsers={historyList}
+    />
   );
 }

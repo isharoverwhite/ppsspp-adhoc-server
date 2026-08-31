@@ -1210,7 +1210,16 @@
     }
 
     detectLanguage().then(() => fetchServerStatus());
-    setInterval(fetchServerStatus, 5000);
+    
+    let statusInterval = setInterval(fetchServerStatus, 8000);
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden) {
+        clearInterval(statusInterval);
+      } else {
+        fetchServerStatus();
+        statusInterval = setInterval(fetchServerStatus, 8000);
+      }
+    });
   </script>
 </body>
 </html>

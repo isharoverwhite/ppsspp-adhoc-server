@@ -43,7 +43,15 @@ func startWelcomeServer(s *state.ServerState) {
 	mux.HandleFunc("/api/status", GetStatusHandler(s))
 
 	fileServer := http.FileServer(http.Dir(welcomeDir))
-	mux.Handle("/", fileServer)
+	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		ext := filepath.Ext(r.URL.Path)
+		if ext == ".png" || ext == ".jpg" || ext == ".ico" || ext == ".svg" || ext == ".woff2" {
+			w.Header().Set("Cache-Control", "public, max-age=86400, stale-while-revalidate=604800")
+		} else if ext == ".html" || r.URL.Path == "/" {
+			w.Header().Set("Cache-Control", "public, max-age=0, must-revalidate")
+		}
+		fileServer.ServeHTTP(w, r)
+	})
 
 	// Try listening on the configured port
 	listener, err := net.Listen("tcp", ":"+port)

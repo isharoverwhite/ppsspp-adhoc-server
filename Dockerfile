@@ -1,5 +1,6 @@
 # Build Next.js
 FROM node:20-alpine AS webapp-build
+RUN apk add --no-cache openssl
 WORKDIR /app/webapp
 COPY webapp/package*.json ./
 RUN npm ci --legacy-peer-deps || npm ci
@@ -19,7 +20,7 @@ RUN CGO_ENABLED=1 GOOS=linux go build -ldflags="-w -s" -o ppsspp-adhoc-go .
 
 # Final Runtime
 FROM alpine:3.18
-RUN apk add --no-cache sqlite-libs tzdata nodejs npm
+RUN apk add --no-cache sqlite-libs tzdata nodejs npm openssl
 WORKDIR /app
 
 # Copy Go binary and Welcome WebUI

@@ -45,20 +45,26 @@ func main() {
 	// Initialize Thread-Safe State Manager
 	serverState := state.NewServerState(database)
 
-	// Background Timeout Checker
+	// Background Timeout Checker (Non-blocking: reads under RLock, closes outside lock)
 	go func() {
-		for {
-			time.Sleep(5 * time.Second)
+		ticker := time.NewTicker(5 * time.Second)
+		defer ticker.Stop()
+
+		for range ticker.C {
 			now := time.Now()
-			
-			serverState.Mu.Lock()
+			var timedOutConns []net.Conn
+
+			serverState.Mu.RLock()
 			for _, u := range serverState.Users {
-				if now.Sub(u.LastRecv) > 15*time.Second {
-					fmt.Printf("Timeout: Closing connection for %s (%s)\n", u.Name, u.MACString())
-					u.Conn.Close() // handleClient will handle cleanup
+				if now.Sub(u.LastRecv) > 20*time.Second {
+					timedOutConns = append(timedOutConns, u.Conn)
 				}
 			}
-			serverState.Mu.Unlock()
+			serverState.Mu.RUnlock()
+
+			for _, c := range timedOutConns {
+				c.Close() // handleClient handles cleanup and remove
+			}
 		}
 	}()
 
@@ -156,19 +162,26 @@ func min(a, b int) int {
 func handleClient(conn net.Conn, s *state.ServerState) {
 	remoteAddr := conn.RemoteAddr().String()
 
-	// Panic Recovery: Đảm bảo server không bao giờ bị crash vì 1 client lỗi
+	// Optimize TCP socket for low-latency gaming
+	if tcpConn, ok := conn.(*net.TCPConn); ok {
+		tcpConn.SetNoDelay(true)
+		tcpConn.SetKeepAlive(true)
+		tcpConn.SetKeepAlivePeriod(15 * time.Second)
+		tcpConn.SetReadBuffer(32 * 1024)
+		tcpConn.SetWriteBuffer(32 * 1024)
+	}
+
+	// Panic Recovery
 	defer func() {
 		if r := recover(); r != nil {
 			fmt.Printf("[CRITICAL] Recovered from panic in handleClient (%s): %v\n", remoteAddr, r)
 		}
-		// Clean up user state on disconnect
 		s.RemoveUserByConn(conn)
 		conn.Close()
 	}()
 
 	fmt.Printf("New Connection from %s (Total Users: %d)\n", remoteAddr, s.GetUserCount())
 
-	// Create a new User object (State will be updated on Login)
 	user := &state.User{
 		Conn:     conn,
 		State:    state.UserStateWaiting,
@@ -179,6 +192,9 @@ func handleClient(conn net.Conn, s *state.ServerState) {
 	buf := make([]byte, 1)
 
 	for {
+		// Set read deadline to prevent hanging goroutines
+		conn.SetReadDeadline(time.Now().Add(30 * time.Second))
+
 		// Read Opcode
 		n, err := io.ReadFull(conn, buf)
 		if err != nil {
@@ -191,16 +207,13 @@ func handleClient(conn net.Conn, s *state.ServerState) {
 		}
 
 		opcode := buf[0]
-		// fmt.Printf("[%s] Received Opcode 0x%02X\n", remoteAddr, opcode)
-
-		// Update LastRecv
 		user.UpdateActivity()
 
 		// Route based on Opcode and State
 		err = handlePacket(user, opcode, s)
 		if err != nil {
 			fmt.Printf("Error handling packet 0x%02X from %s: %v\n", opcode, remoteAddr, err)
-			break // Disconnect on protocol error
+			break
 		}
 	}
 

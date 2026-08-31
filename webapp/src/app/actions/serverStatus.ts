@@ -1,29 +1,9 @@
 'use server'
 
 import { prisma } from '@/lib/prisma';
+import { getProductMap } from '@/lib/products';
 
-// In-memory cache for static product ID to Game Name mappings (4,300+ items)
-let cachedProductMap: Map<string, string> | null = null;
-let lastProductMapFetch = 0;
-const PRODUCT_MAP_TTL = 60 * 60 * 1000; // 1 hour
-
-async function getProductMap(): Promise<Map<string, string>> {
-    const now = Date.now();
-    if (cachedProductMap && (now - lastProductMapFetch) < PRODUCT_MAP_TTL) {
-        return cachedProductMap;
-    }
-
-    try {
-        const productIds = await prisma.$queryRaw<Array<{ id: string; name: string }>>`SELECT id, name FROM productids`;
-        cachedProductMap = new Map(productIds.map(p => [p.id, p.name]));
-        lastProductMapFetch = now;
-        return cachedProductMap;
-    } catch {
-        return cachedProductMap || new Map();
-    }
-}
-
-// In-memory cache for total playtime metrics to avoid full DB scans every 2 seconds
+// In-memory cache for total playtime metrics to avoid full DB scans every tick
 let cachedUsageStats: { uptimeSeconds: number; totalUsageSeconds: number; timestamp: number } | null = null;
 const USAGE_STATS_TTL = 30 * 1000; // 30 seconds
 
@@ -60,7 +40,7 @@ export async function getServerStatus() {
             return acc + realGroups.length;
         }, 0);
 
-        // Map game titles using cached in-memory product map
+        // Map game titles using shared cached in-memory product map
         const productMap = await getProductMap();
         games.forEach((g: any) => {
             if (g.name === g.id || !g.name) {

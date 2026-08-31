@@ -6,6 +6,7 @@ import (
 	"io"
 	"net"
 	"strings"
+	"time"
 
 	"github.com/souler/ppsspp-adhoc-go/protocol"
 	"github.com/souler/ppsspp-adhoc-go/state"
@@ -325,13 +326,21 @@ func handleChat(user *state.User, s *state.ServerState) error {
 	copy(resp.Name[:], user.Name)
 	respBytes := resp.Encode()
 
+	// Collect peers
+	var peers []net.Conn
 	s.Mu.RLock()
 	for _, peer := range user.Group.Players {
-		if peer != user {
-			peer.Conn.Write(respBytes)
+		if peer != user && peer.Conn != nil {
+			peers = append(peers, peer.Conn)
 		}
 	}
 	s.Mu.RUnlock()
+
+	// Write outside of global state lock
+	for _, peerConn := range peers {
+		peerConn.SetWriteDeadline(time.Now().Add(1 * time.Second))
+		peerConn.Write(respBytes)
+	}
 
 	// Log to Database
 	msgStr := protocol.CString(packet.Message[:])
@@ -362,12 +371,18 @@ func SpreadGlobalMessage(s *state.ServerState, message string, isSystem bool) {
 	
 	respBytes := resp.Encode()
 
+	var targets []net.Conn
 	s.Mu.RLock()
-	defer s.Mu.RUnlock()
 	for _, user := range s.Users {
-		if user.State == state.UserStateLoggedIn {
-			user.Conn.Write(respBytes)
+		if user.State == state.UserStateLoggedIn && user.Conn != nil {
+			targets = append(targets, user.Conn)
 		}
+	}
+	s.Mu.RUnlock()
+
+	for _, conn := range targets {
+		conn.SetWriteDeadline(time.Now().Add(1 * time.Second))
+		conn.Write(respBytes)
 	}
 }
 
@@ -385,14 +400,20 @@ func SpreadGameMessage(s *state.ServerState, gameCode string, message string) {
 	
 	respBytes := resp.Encode()
 
+	var targets []net.Conn
 	s.Mu.RLock()
-	defer s.Mu.RUnlock()
 	for _, user := range s.Users {
-		if user.State == state.UserStateLoggedIn && user.Game != nil {
+		if user.State == state.UserStateLoggedIn && user.Game != nil && user.Conn != nil {
 			if user.Game.ProductCode == gameCode {
-				user.Conn.Write(respBytes)
+				targets = append(targets, user.Conn)
 			}
 		}
+	}
+	s.Mu.RUnlock()
+
+	for _, conn := range targets {
+		conn.SetWriteDeadline(time.Now().Add(1 * time.Second))
+		conn.Write(respBytes)
 	}
 }
 
@@ -410,13 +431,20 @@ func SpreadGroupMessage(s *state.ServerState, gameCode string, groupName string,
 	
 	respBytes := resp.Encode()
 
+	var targets []net.Conn
 	s.Mu.RLock()
-	defer s.Mu.RUnlock()
 	for _, user := range s.Users {
-		if user.State == state.UserStateLoggedIn && user.Group != nil && user.Game != nil {
+		if user.State == state.UserStateLoggedIn && user.Group != nil && user.Game != nil && user.Conn != nil {
 			if user.Game.ProductCode == gameCode && user.Group.Name == groupName {
-				user.Conn.Write(respBytes)
+				targets = append(targets, user.Conn)
 			}
 		}
 	}
+	s.Mu.RUnlock()
+
+	for _, conn := range targets {
+		conn.SetWriteDeadline(time.Now().Add(1 * time.Second))
+		conn.Write(respBytes)
+	}
 }
+

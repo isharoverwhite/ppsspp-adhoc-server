@@ -1,31 +1,11 @@
 'use server'
 
 import { prisma } from '@/lib/prisma';
+import { getProductMap } from '@/lib/products';
 
 // In-memory cache for game trends
 let cachedGameTrends: { trends: any[]; timestamp: number } | null = null;
 const TRENDS_CACHE_TTL = 30 * 1000; // 30 seconds
-
-// Static in-memory productMap cache
-let cachedProductMap: Map<string, string> | null = null;
-let lastProductMapFetch = 0;
-const PRODUCT_MAP_TTL = 60 * 60 * 1000; // 1 hour
-
-async function getProductMap(): Promise<Map<string, string>> {
-    const now = Date.now();
-    if (cachedProductMap && (now - lastProductMapFetch) < PRODUCT_MAP_TTL) {
-        return cachedProductMap;
-    }
-
-    try {
-        const productIds = await prisma.$queryRaw<Array<{ id: string; name: string }>>`SELECT id, name FROM productids`;
-        cachedProductMap = new Map(productIds.map(p => [p.id, p.name]));
-        lastProductMapFetch = now;
-        return cachedProductMap;
-    } catch {
-        return cachedProductMap || new Map();
-    }
-}
 
 export async function getMonthlyGameTrends() {
     const now = Date.now();
