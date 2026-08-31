@@ -7,11 +7,10 @@ services:
       dockerfile: Dockerfile
     image: ppsspp-adhoc:latest
     container_name: ppsspp-adhoc
-    ports:
-      - "80:80"
-      - "27312:27312"
-      - "3000:3000"
+    network_mode: host
     environment:
+      - HOSTNAME=0.0.0.0
+      - PORT=3000
       - ADHOC_PORT=${ADHOC_PORT:-27312}
       - ADHOC_MAX_USERS=${ADHOC_MAX_USERS:-1024}
       - ADHOC_TIMEOUT=${ADHOC_TIMEOUT:-15}
@@ -20,3 +19,4 @@ services:
     volumes:
       - ./data:/app/data
     restart: unless-stopped
+
