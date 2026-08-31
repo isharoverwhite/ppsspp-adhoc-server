@@ -4,15 +4,30 @@ import { getMonthlyGameTrends } from '@/app/actions/gameTrends';
 
 export const dynamic = 'force-dynamic';
 
-export async function GET() {
+export async function GET(request: Request) {
   const encoder = new TextEncoder();
+  let intervalId: NodeJS.Timeout | null = null;
+  let isClosed = false;
+
+  const cleanup = () => {
+    isClosed = true;
+    if (intervalId) {
+      clearInterval(intervalId);
+      intervalId = null;
+    }
+  };
+
+  // Listen to client disconnect / navigation abort
+  request.signal.addEventListener('abort', cleanup);
 
   const stream = new ReadableStream({
     async start(controller) {
-      let isAlive = true;
-
       const sendEvent = async () => {
-        if (!isAlive) return;
+        if (isClosed || request.signal.aborted) {
+          cleanup();
+          try { controller.close(); } catch {}
+          return;
+        }
 
         try {
           const [status, chat, trends] = await Promise.all([
@@ -20,6 +35,11 @@ export async function GET() {
             getChatLogs(),
             getMonthlyGameTrends()
           ]);
+
+          if (isClosed || request.signal.aborted) {
+            cleanup();
+            return;
+          }
 
           const payload = JSON.stringify({
             status,
@@ -30,28 +50,19 @@ export async function GET() {
 
           controller.enqueue(encoder.encode(`data: ${payload}\n\n`));
         } catch (err) {
-          // If error occurs, send error payload
-          console.error("SSE stream error:", err);
+          // Stream closed or error
+          cleanup();
         }
       };
 
-      // Send immediately
+      // Initial immediate send
       await sendEvent();
 
-      // Interval stream every 2 seconds
-      const interval = setInterval(async () => {
-        if (!isAlive) {
-          clearInterval(interval);
-          return;
-        }
-        await sendEvent();
-      }, 2000);
-
-      // Clean up on stream cancel
-      return () => {
-        isAlive = false;
-        clearInterval(interval);
-      };
+      // Periodic push every 3 seconds
+      intervalId = setInterval(sendEvent, 3000);
+    },
+    cancel() {
+      cleanup();
     }
   });
 

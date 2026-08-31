@@ -31,7 +31,7 @@ export default function HeaderNav() {
 
   useEffect(() => {
     checkPortHealth();
-    const interval = setInterval(checkPortHealth, 5000);
+    const interval = setInterval(checkPortHealth, 15000);
     return () => clearInterval(interval);
   }, []);
 
