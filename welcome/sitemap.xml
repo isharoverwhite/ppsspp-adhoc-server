@@ -1,13 +1,19 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
+        xmlns:xhtml="http://www.w3.org/1999/xhtml"
         xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">
   <url>
-    <loc>https://ppsspp.isharoverwhite.com/</loc>
-    <lastmod>2026-08-31</lastmod>
+    <loc>https://play.isharoverwhite.com/</loc>
+    <xhtml:link rel="alternate" hreflang="vi" href="https://play.isharoverwhite.com/?lang=vi"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://play.isharoverwhite.com/?lang=en"/>
+    <xhtml:link rel="alternate" hreflang="th" href="https://play.isharoverwhite.com/?lang=th"/>
+    <xhtml:link rel="alternate" hreflang="id" href="https://play.isharoverwhite.com/?lang=id"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://play.isharoverwhite.com/"/>
+    <lastmod>2026-09-03</lastmod>
     <changefreq>daily</changefreq>
     <priority>1.0</priority>
     <image:image>
-      <image:loc>https://ppsspp.isharoverwhite.com/favicon.png</image:loc>
+      <image:loc>https://play.isharoverwhite.com/favicon.png</image:loc>
       <image:title>Play PSP with Experience - Furuhonya Kani-chan</image:title>
       <image:caption>Máy chủ PPSSPP &amp; Real PSP Ad-hoc Multiplayer chất lượng cao phong cách Chiikawa</image:caption>
     </image:image>
