@@ -558,7 +558,30 @@
       width: 100%;
       cursor: pointer;
       transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
-      user-select: all;
+      user-select: none !important;
+      -webkit-user-select: none !important;
+      -moz-user-select: none !important;
+      -ms-user-select: none !important;
+      -webkit-touch-callout: none !important;
+      -webkit-tap-highlight-color: transparent !important;
+      outline: none !important;
+    }
+    .domain-display,
+    .domain-display * {
+      user-select: none !important;
+      -webkit-user-select: none !important;
+      -moz-user-select: none !important;
+      -ms-user-select: none !important;
+      -webkit-touch-callout: none !important;
+      -webkit-tap-highlight-color: transparent !important;
+      outline: none !important;
+    }
+    .domain-display::selection,
+    .domain-display *::selection,
+    .domain-display::-moz-selection,
+    .domain-display *::-moz-selection {
+      background: transparent !important;
+      color: inherit !important;
     }
     .domain-display:hover {
       transform: translateY(-3px) scale(1.015);
@@ -1008,16 +1031,23 @@
       font-size: 14px;
       box-shadow: 0 12px 28px rgba(255, 123, 137, 0.45);
       opacity: 0;
-      transition: all 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
-      z-index: 9999;
+      pointer-events: none;
+      transition: transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.35s ease;
+      z-index: 99999;
       display: flex;
       align-items: center;
       gap: 8px;
       width: max-content;
       max-width: 90vw;
     }
+    .toast.show {
+      transform: translateX(-50%) translateY(0);
+      opacity: 1;
+      pointer-events: auto;
+    }
     @media (min-width: 768px) {
       .toast { bottom: 40px; padding: 14px 32px; font-size: 16px; gap: 10px; }
+      .toast.show { transform: translateX(-50%) translateY(0); }
     }
     /* FAQ Accordion Section - Chiikawa Soft Theme */
     .faq-section {
@@ -1136,7 +1166,7 @@
             Server Domain (PRO Adhoc IP)
           </div>
           
-          <div class="domain-display" id="main-domain-text" onclick="copyText('direct.play.isharoverwhite.com', 'Domain')" title="Nhấp để sao chép Domain">
+          <div class="domain-display" id="main-domain-text" onclick="copyText('direct.play.isharoverwhite.com', 'Domain')" onselectstart="return false;" title="Nhấp để sao chép Domain">
             <span>direct.play.isharoverwhite.com</span>
             <span class="material-symbols-outlined" style="font-size: 18px; color: var(--primary-salmon); flex-shrink: 0;">content_copy</span>
           </div>
@@ -1645,15 +1675,50 @@
       }
     }
 
-    const DOMAIN = 'direct.play.isharoverwhite.com';
-
+    let toastTimeout;
     function copyText(text, label) {
-      navigator.clipboard.writeText(text).then(() => {
+      if (window.getSelection) {
+        window.getSelection().removeAllRanges();
+      }
+      const showToast = () => {
+        if (window.getSelection) {
+          window.getSelection().removeAllRanges();
+        }
         const toast = document.getElementById('toast');
-        document.getElementById('toast-text').innerText = (i18n[currentLang].copied || "Đã sao chép {label}!").replace("{label}", label);
-        toast.classList.add('show');
-        setTimeout(() => { toast.classList.remove('show'); }, 2500);
-      });
+        const textEl = document.getElementById('toast-text');
+        if (textEl && i18n[currentLang]) {
+          textEl.innerText = (i18n[currentLang].copied || "Đã sao chép {label}!").replace("{label}", label);
+        }
+        if (toast) {
+          toast.classList.add('show');
+          clearTimeout(toastTimeout);
+          toastTimeout = setTimeout(() => { toast.classList.remove('show'); }, 2500);
+        }
+      };
+
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(showToast).catch(() => fallbackCopy(text, showToast));
+      } else {
+        fallbackCopy(text, showToast);
+      }
+    }
+
+    function fallbackCopy(str, cb) {
+      const el = document.createElement('textarea');
+      el.value = str;
+      el.setAttribute('readonly', '');
+      el.style.position = 'fixed';
+      el.style.top = '0';
+      el.style.left = '-9999px';
+      document.body.appendChild(el);
+      el.select();
+      try {
+        document.execCommand('copy');
+        if (cb) cb();
+      } catch (err) {
+        console.error('Fallback copy failed', err);
+      }
+      document.body.removeChild(el);
     }
 
     function switchTab(tabId, el) {
